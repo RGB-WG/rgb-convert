@@ -1,0 +1,18 @@
+ver: 1
+schema: rgb_schema
+network: bitcoin:testnet
+root: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
+pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1
+seals:
+  - type: assets
+    outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:0
+    amount: 1000000
+  - type: inflation
+    outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:1
+  - type: upgrade
+    outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:3
+  - type: pruning
+    outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:2
+metadata:
+  title: Private Company Ltd Shares
+  dust_limit: 1

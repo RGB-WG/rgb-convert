@@ -1,0 +1,10 @@
+*.pyc
+
+local*.cfg
+
+build/
+dist/
+opentimestamps.egg-info/
+
+#Idea IDE
+.idea/
