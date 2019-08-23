@@ -61,6 +61,6 @@ proof_types:
     unseals:
       assets: many
     fields:
-      ver: single
+      ver: optional
     seals:
       assets: any

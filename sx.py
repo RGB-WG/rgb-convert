@@ -18,14 +18,13 @@
 import re
 import sys
 import logging
-from pprint import pprint
 
 import yaml
 import click
 
-from openseals.raw.schema import *
+from openseals.schema.schema import *
 
-__author__ = "Dr Maxim Orlovsky"
+__author__ = "Dr Maxim Orlovsky <orlovsky@pandoracore.com>"
 
 
 @click.group()
