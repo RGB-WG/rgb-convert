@@ -47,6 +47,15 @@ def guess_format(file: str, kwargs: dict) -> str:
     return format
 
 
+def load_shema(file: str) -> Schema:
+    logging.info(f'- loading schema data from `{file}`')
+    with open(file) as f:
+        data = yaml.safe_load(f)
+    schema = Schema(**data)
+    schema.resolve_refs()
+    return schema
+
+
 @main.command()
 @click.argument('file')
 @click.option('--format', '-f')
@@ -81,15 +90,13 @@ def schema_validate(file: str, **kwargs) -> Schema:
 @main.command()
 @click.argument('infile')
 @click.argument('outfile')
-def schema_transcode(infile: str, outfile: str):
+@click.option('--input-format', '-i')
+@click.option('--output-format', '-o')
+def schema_transcode(infile: str, outfile: str, **kwargs):
     """Transcodes schema file into another format"""
     logging.info(f'Transcoding schema from `{infile}` to `{outfile}`:')
 
-    logging.info('- loading data')
-    with open(infile) as f:
-        data = yaml.safe_load(f)
-    schema = Schema(**data)
-    schema.resolve_refs()
+    schema = load_shema(infile)
 
     logging.info('- serializing data')
     with open(outfile, 'wb') as f:
@@ -110,17 +117,39 @@ def proof_validate(file: str, **kwargs) -> Schema:
     format = guess_format(file, kwargs)
 
     if 'schema' in kwargs:
-        schema_file = kwargs['schema']
-        logging.info(f'- loading schema data from `{schema_file}`')
-        with open(schema_file) as f:
-            data = yaml.safe_load(f)
-        schema = Schema(**data)
-        schema.resolve_refs()
+        schema = load_shema(kwargs['schema'])
 
     logging.info(f'- loading proof data from `{file}`')
     with open(file) as f:
         data = yaml.safe_load(f)
     proof = Proof(schema_obj=schema, **data)
+
+
+@main.command()
+@click.argument('infile')
+@click.argument('outfile')
+@click.option('--schema', '-s')
+@click.option('--input-format', '-i')
+@click.option('--output-format', '-o')
+def proof_transcode(infile: str, outfile: str, **kwargs):
+    """Transcodes proof file into another format"""
+    logging.info(f'Transcoding proof from `{infile}` to `{outfile}`:')
+
+    if 'schema' in kwargs:
+        schema = load_shema(kwargs['schema'])
+
+    logging.info(f'- loading proof data from `{infile}`')
+    with open(infile) as f:
+        data = yaml.safe_load(f)
+    proof = Proof(schema_obj=schema, **data)
+
+    logging.info('- serializing data')
+    with open(outfile, 'wb') as f:
+        proof.stream_serialize(f)
+        pos = f.tell()
+    logging.info(
+        f'''Proof `{infile}` was transcoded into `{outfile}`; {pos} byes written,
+          proof hash is {proof.bech32_id()}''')
 
 
 if __name__ == "__main__":

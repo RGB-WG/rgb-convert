@@ -13,8 +13,8 @@
 # If not, see <https://opensource.org/licenses/MIT>.
 
 
-from typing import Any
-from bitcoin.core import ImmutableSerializable
+from bitcoin.core import ImmutableSerializable, VectorSerializer
+from bitcoin.segwit_addr import bech32_encode, convertbits
 
 from openseals.data_types import Sha256Id, PubKey, Network, OutPoint
 from openseals.parser import *
@@ -48,13 +48,42 @@ class Proof(ImmutableSerializable):
             elif val is not None and not self.is_root():
                 raise FieldParseError(FieldParseError.Kind.extraField,
                                       field, 'field must be present in root proof only')
+        if (self.parents is not None and self.txid is None) or (self.parents is None and self.txid is not None):
+            raise FieldParseError(FieldParseError.Kind.noRequiredField,
+                                  'parents' if self.parents is None else 'txid',
+                                  'both `parents` and `txid` fields must be present for non-pruned proof data')
 
     def is_root(self) -> bool:
         return False if self.root is None else True
+
+    def is_pruned(self) -> bool:
+        return self.txid is None and self.parents is None
+
+    def bech32_id(self) -> str:
+        return bech32_encode('osp', convertbits(self.GetHash(), 8, 5))
 
     @classmethod
     def stream_deserialize(cls, f):
         pass
 
     def stream_serialize(self, f):
-        pass
+        if self.is_root():
+            f.write(bytes([self.ver & 0x80]))
+            self.schema.stream_serialize(f)
+            f.write(bytes([self.network]))
+            self.root.stream_serialize(f)
+        else:
+            f.write(bytes([(self.ver if self.ver is not None else 0x00) & 0x7F]))
+
+        VectorSerializer.stream_serialize(MetaField, self.metadata if self.metadata is not None else [], f)
+        VectorSerializer.stream_serialize(Seal, self.seals if self.seals is not None else [], f)
+
+        if self.pubkey is None:
+            f.write(b'\x00')
+        else:
+            f.write(b'\x01')
+            self.pubkey.stream_serialize(f)
+
+        if not self.is_pruned():
+            VectorSerializer.stream_serialize(Sha256Id, self.parents, f)
+            self.txid.stream_serialize(f)

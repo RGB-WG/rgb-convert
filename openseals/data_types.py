@@ -62,7 +62,8 @@ class Sha256Id(ImmutableSerializable):
             if len(data) is 64:
                 value = lx(data)
             elif re.search(re.compile('^(oss|osp|bc|tb)\\d[0-6]?[02-9ac-hj-np-z]+$', re.IGNORECASE), data):
-                value = bech32_decode(data)
+                (hrf, value) = bech32_decode(data)
+                value = bytes(value)
             else:
                 raise ValueError(
                     f'Sha256Id requires 64-char hex string or bech32-encoded string, instead {data} is provided')

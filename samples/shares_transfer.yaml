@@ -1,3 +1,4 @@
+# This proof has bech32-encoded id `osp179sqeypkyjkm2kld48xj00xvk5jxwqcllh7mwc36l6ce5p9vwfmqxxf9rq`
 seals:
   - type: assets
     outpoint: 0
