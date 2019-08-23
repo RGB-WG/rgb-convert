@@ -15,7 +15,8 @@
 import logging
 from bitcoin.core.serialize import *
 from bitcoin.segwit_addr import bech32_encode, convertbits
-from ..parse import *
+from ..parser import *
+from .types import SemVer, Sha256Id
 
 
 class SchemaError(Exception):
@@ -191,8 +192,8 @@ class FieldType(ImmutableSerializable):
 class Schema(ImmutableSerializable):
     FIELDS = {
         'name': FieldParser(str),
-        'schema_ver': FieldParser(str),
-        'prev_schema': FieldParser(str),
+        'schema_ver': FieldParser(SemVer),
+        'prev_schema': FieldParser(Sha256Id),
         'field_types': FieldParser(FieldType, recursive=True, array=True),
         'seal_types': FieldParser(SealType, recursive=True, array=True),
         'proof_types': FieldParser(ProofType, recursive=True, array=True),
@@ -233,6 +234,8 @@ class Schema(ImmutableSerializable):
 
     def stream_serialize(self, f):
         VarStringSerializer.stream_serialize(self.name.encode('utf-8'), f)
+        self.schema_ver.stream_serialize(f)
+        self.prev_schema.stream_serialize(f)
         VectorSerializer.stream_serialize(FieldType, self.field_types, f)
         VectorSerializer.stream_serialize(SealType, self.seal_types, f)
         VectorSerializer.stream_serialize(ProofType, self.proof_types, f)
