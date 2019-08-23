@@ -39,7 +39,7 @@ def main():
 @main.command()
 @click.argument('file')
 @click.option('--format', '-f')
-def validate(file: str, format: str):
+def schema_validate(file: str, format: str) -> Schema:
     """
     Reads file containing a proof, schema or a proof history and validates its consistency.
     File can have YAML or binary serialization format. The format is guessed by file extension: YAML files must have
@@ -69,8 +69,31 @@ def validate(file: str, format: str):
     schema.validate()
 
     logging.info(f'Schema `{schema.name}`, version {schema.schema_ver} is correct')
+    return schema
+
+
+@main.command()
+@click.argument('infile')
+@click.argument('outfile')
+def schema_transcode(infile: str, outfile: str):
+    """Transcodes schema file into another format"""
+    logging.info(f'Transcoding schema from `{infile}` to `{outfile}`:')
+
+    logging.info('- loading data')
+    with open(infile) as f:
+        data = yaml.safe_load(f)
+    schema = Schema(**data)
+    schema.resolve_refs()
+
+    logging.info('- serializing data')
+    with open(outfile, 'wb') as f:
+        schema.stream_serialize(f)
+        pos = f.tell()
+    logging.info(
+        f'''Schema `{schema.name}`, version {schema.schema_ver} was transcoded into `{outfile}`; {pos} byes written,
+          schema hash is {schema.bech32_id()}''')
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
     main()

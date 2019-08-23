@@ -13,7 +13,7 @@
 # If not, see <https://opensource.org/licenses/MIT>.
 
 import logging
-from enum import Enum, unique
+from enum import Enum, IntEnum, unique
 
 
 class FieldParseError(Exception):
@@ -38,7 +38,7 @@ class FieldParseError(Exception):
         return msg
 
 
-class FieldEnum(Enum):
+class FieldEnum(IntEnum):
     @classmethod
     def from_str(cls, val: str):
         return cls.__members__[val]

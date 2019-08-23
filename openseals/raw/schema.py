@@ -13,7 +13,8 @@
 # If not, see <https://opensource.org/licenses/MIT>.
 
 import logging
-from bitcoin.core import ImmutableSerializable
+from bitcoin.core.serialize import *
+from bitcoin.segwit_addr import bech32_encode, convertbits
 from ..parse import *
 
 
@@ -57,7 +58,7 @@ class TypeRef(ImmutableSerializable):
         'bounds': FieldParser(Usage)
     }
 
-    __slots__ = list(FIELDS.keys()) + ['type']
+    __slots__ = list(FIELDS.keys()) + ['type', 'type_pos']
 
     def __init__(self, name: str, bounds: str):
         for field_name, field in TypeRef.FIELDS.items():
@@ -65,8 +66,11 @@ class TypeRef(ImmutableSerializable):
 
     def resolve_ref(self, schema_types: list):
         try:
-            object.__setattr__(self, 'type', next(type for type in schema_types if type.name == self.ref_name))
+            pos = next(num for num, type in enumerate(schema_types) if type.name == self.ref_name)
+            object.__setattr__(self, 'type_pos', pos)
+            object.__setattr__(self, 'type', schema_types[pos])
         except StopIteration:
+            object.__setattr__(self, 'type_pos', None)
             object.__setattr__(self, 'type', None)
 
     @classmethod
@@ -74,7 +78,8 @@ class TypeRef(ImmutableSerializable):
         pass
 
     def stream_serialize(self, f):
-        pass
+        VarIntSerializer.stream_serialize(self.type_pos, f)
+        f.write(bytes([self.bounds]))
 
 
 class ProofType(ImmutableSerializable):
@@ -111,7 +116,10 @@ class ProofType(ImmutableSerializable):
         pass
 
     def stream_serialize(self, f):
-        pass
+        VarStringSerializer.stream_serialize(self.title.encode('utf-8'), f)
+        VectorSerializer.stream_serialize(TypeRef, self.fields, f)
+        VectorSerializer.stream_serialize(TypeRef, [] if self.unseals is None else self.unseals, f)
+        VectorSerializer.stream_serialize(TypeRef, self.seals, f)
 
 
 class SealType(ImmutableSerializable):
@@ -136,7 +144,8 @@ class SealType(ImmutableSerializable):
         pass
 
     def stream_serialize(self, f):
-        pass
+        VarStringSerializer.stream_serialize(self.name.encode('utf-8'), f)
+        f.write(bytes([self.type]))
 
 
 class FieldType(ImmutableSerializable):
@@ -175,7 +184,8 @@ class FieldType(ImmutableSerializable):
         pass
 
     def stream_serialize(self, f):
-        pass
+        VarStringSerializer.stream_serialize(self.name.encode('utf-8'), f)
+        f.write(bytes([self.type]))
 
 
 class Schema(ImmutableSerializable):
@@ -206,9 +216,23 @@ class Schema(ImmutableSerializable):
                 raise SchemaValidationError(
                     f'No `unseals` specified for `{proof_type.title}`, the field is required for all non-root proofs')
 
+    def bech32_id(self) -> str:
+        return bech32_encode('oss', convertbits(self.GetHash(), 8, 5))
+
     @classmethod
     def stream_deserialize(cls, f):
-        pass
+        name = VarStringSerializer.deserialize(f)
+        #return Schema(
+        #    name=name,
+        #    schema_ver=schema_ver,
+        #    prev_schema=prev_schema,
+        #    field_types=field_types,
+        #    seal_types=seal_types,
+        #    proof_types=proof_types
+        #)
 
     def stream_serialize(self, f):
-        pass
+        VarStringSerializer.stream_serialize(self.name.encode('utf-8'), f)
+        VectorSerializer.stream_serialize(FieldType, self.field_types, f)
+        VectorSerializer.stream_serialize(SealType, self.seal_types, f)
+        VectorSerializer.stream_serialize(ProofType, self.proof_types, f)
