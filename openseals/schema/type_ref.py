@@ -39,4 +39,5 @@ class TypeRef(ImmutableSerializable):
 
     def stream_serialize(self, f):
         VarIntSerializer.stream_serialize(self.type_pos, f)
-        f.write(bytes([self.bounds]))
+        f.write(bytes([[0, 1, 2, 0, 1][self.bounds]]))
+        f.write(bytes([[1, 1, 2, 0xFF, 0xFF][self.bounds]]))
