@@ -17,6 +17,7 @@
 
 import re
 import sys
+import logging
 from pprint import pprint
 
 import yaml
@@ -45,19 +46,23 @@ def validate(file: str, format: str):
     .yaml or .yml extension; other file extension are considered to be binary. This can be modified with -t or
     --filetype command-line option, which can take either 'YAML' or 'binary' values
     """
+    logging.info(f'Validating schema from `{file}`:')
     if format is None:
-        format = "yaml" if re.search("\\.ya?ml$", file.lower()) is None else "binary"
+        format = "yaml" if re.search("\\.ya?ml$", file.lower()) is not None else "binary"
     elif format.lower() == "yaml" or format.lower() == "binary":
         format = format.lower()
     else:
         sys.exit("Wrong value for --format or -f argument: accepted values are 'yaml' and 'binary'")
 
+    logging.debug(f'- applied format is `{format}`')
+    logging.debug('- reading data with this format')
     with open(file) as f:
         data = yaml.safe_load(f)
 
+    logging.debug('- parsing data')
     schema = Schema(**data)
-    pprint(schema.name)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     main()

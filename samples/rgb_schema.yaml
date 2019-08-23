@@ -2,61 +2,61 @@ name: RGB
 schema_ver: 1.0.0
 prev_schema: '0'
 meta_fields:
-  - &ver ver: u8
-  - &schema schema: sha256
-  - &ticker ticker: str
-  - &title title: str
-  - &description description: str
-  - &url url: str
-  - &max_supply max_supply: u64
-  - &dust_limit dust_limit: u64
-  - &signature signature: signature
+  ver: u8
+  schema: sha256
+  ticker: str
+  title: str
+  description: str
+  url: str
+  max_supply: u64
+  dust_limit: u64
+  signature: signature
 seal_types:
-  - &assets assets: balance
-  - &inflation inflation: none
-  - &upgrade upgrade: none
-  - &pruning pruning: none
+  assets: balance
+  inflation: none
+  upgrade: none
+  pruning: none
 proof_types:
-  - title: 'Primary issue'
+  - title: Primary issue
     meta:
-      - *ticker: 0..1
-      - *title: 0..1
-      - *description: 0..1
-      - *url: 0..1
-      - *max_supply: 0..1
-      - *dust_limit: 1
-      - *signature: 0..1
+      ticker: 0..1
+      title: 0..1
+      description: 0..1
+      url: 0..1
+      max_supply: 0..1
+      dust_limit: 1
+      signature: 0..1
     seals:
-      - *assets: 1..
-      - *inflation: 0..1
-      - *upgrade: 1
-      - *pruning: 1
-  - title: 'Secondary issue'
-    unseals: *inflation
+      assets: 1..
+      inflation: 0..1
+      upgrade: 1
+      pruning: 1
+  - title: Secondary issue
+    unseals: inflation
     meta_fields:
-      - *url: 0..1
-      - *signature: 0..1
+      url: 0..1
+      signature: 0..1
     seal_types:
-      - *assets: 1..
-      - *inflation: 0..1
-      - *pruning: 1
-  - title: 'Asset version upgrade'
-    unseals: *upgrade
+      assets: 1..
+      inflation: 0..1
+      pruning: 1
+  - title: Asset version upgrade
+    unseals: upgrade
     meta_fields:
-      - *ver: 1
-      - *schema: 0..1
-      - *signature: 0..1
+      ver: 1
+      schema: 0..1
+      signature: 0..1
     seal_types:
-      - *upgrade: 1
-  - title: 'Asset history pruning'
-    unseals: *pruning
+      upgrade: 1
+  - title: Asset history pruning
+    unseals: pruning
     meta_fields: [ ]
     seal_types:
-      - *assets: 1..
-      - *pruning: 1
-  - title: 'Asset transfer'
-    unseals: *assets
+      assets: 1..
+      pruning: 1
+  - title: Asset transfer
+    unseals: assets
     meta_fields:
-      - *ver: 1
+      ver: 1
     seal_types:
-      - *assets: 1..
+      assets: 1..

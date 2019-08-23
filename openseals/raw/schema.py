@@ -12,13 +12,14 @@
 # along with this software.
 # If not, see <https://opensource.org/licenses/MIT>.
 
+import logging
 from bitcoin.core import ImmutableSerializable
 from ..parse import *
 
 
 class MetaField(ImmutableSerializable):
     @unique
-    class Type(Enum):
+    class Type(FieldEnum):
         str = 0x00
         u8 = 0x01
         u16 = 0x02
@@ -36,10 +37,6 @@ class MetaField(ImmutableSerializable):
         signature = 0x13
         bytes = 0x20
 
-        @classmethod
-        def from_str(cls, val: str):
-            return cls.__members__[val]
-
     FIELDS = {
         'type': FieldParser(Type),
         'name': FieldParser(str)
@@ -47,16 +44,19 @@ class MetaField(ImmutableSerializable):
 
     __slots__ = list(FIELDS.keys())
 
-    def __init__(self, **kwargs):
-        data = list(kwargs.items())
-        if len(data) is not 1:
-            raise FieldParseError(FieldParseError.Kind.wrongFieldType, 'meta_field', f'`{data}`')
-        data = data[0]
-        MetaField.FIELDS['name'].parse(self, {'name': data[0]}, 'name')
-        try:
-            object.__setattr__(self, 'type', MetaField.Type.from_str(data[1]))
-        except KeyError as err:
-            raise FieldParseError(FieldParseError.Kind.wrongEnumValue, data[0], f'`{data[1]}`')
+    def __init__(self, name: str, tp: str):
+        for field_name, field in MetaField.FIELDS.items():
+            field.parse(self, {'name': name, 'type': tp}, field_name)
+
+        # data = list(kwargs.items())
+        # if len(data) is not 1:
+        #     raise FieldParseError(FieldParseError.Kind.wrongFieldType, 'meta_field', f'`{data}`')
+        # data = data[0]
+        # MetaField.FIELDS['name'].parse(self, {'name': data[0]}, 'name')
+        # try:
+        #     object.__setattr__(self, 'type', MetaField.Type.from_str(data[1]))
+        # except KeyError as err:
+        #     raise FieldParseError(FieldParseError.Kind.wrongEnumValue, data[0], f'`{data[1]}`')
 
     @classmethod
     def stream_deserialize(cls, f):
@@ -79,6 +79,7 @@ class Schema(ImmutableSerializable):
     __slots__ = list(FIELDS.keys())
 
     def __init__(self, **kwargs):
+        logging.debug('-- parsing root schema')
         for name, field in Schema.FIELDS.items():
             field.parse(self, kwargs, name)
 
