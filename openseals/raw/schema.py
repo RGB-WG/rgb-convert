@@ -21,7 +21,7 @@ class SchemaError(Exception):
     pass
 
 
-class SchemaInternalRefError(Exception):
+class SchemaInternalRefError(SchemaError):
     __slots__ = ['ref_type', 'ref_name', 'section']
 
     def __init__(self, ref_type: str, ref_name: str, section: str):
@@ -31,6 +31,16 @@ class SchemaInternalRefError(Exception):
 
     def __str__(self):
         return f'Unable to resolve {self.ref_type} reference inside `{self.section}` named `{self.ref_name}`'
+
+
+class SchemaValidationError(SchemaError):
+    __slots__ = ['description']
+
+    def __init__(self, description: str):
+        self.description = description
+
+    def __str__(self):
+        return self.description
 
 
 class TypeRef(ImmutableSerializable):
@@ -187,6 +197,14 @@ class Schema(ImmutableSerializable):
     def resolve_refs(self):
         for proof_type in self.proof_types:
             proof_type.resolve_refs(self)
+
+    def validate(self):
+        if len(self.proof_types) is 0:
+            raise SchemaValidationError('Schema contains zero proof types defined')
+        for proof_type in self.proof_types[1:]:
+            if proof_type.unseals is None:
+                raise SchemaValidationError(
+                    f'No `unseals` specified for `{proof_type.title}`, the field is required for all non-root proofs')
 
     @classmethod
     def stream_deserialize(cls, f):

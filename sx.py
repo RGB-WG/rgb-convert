@@ -54,18 +54,23 @@ def validate(file: str, format: str):
     else:
         sys.exit("Wrong value for --format or -f argument: accepted values are 'yaml' and 'binary'")
 
-    logging.debug(f'- applied format is `{format}`')
-    logging.debug('- reading data with this format')
+    logging.info(f'- applied format is `{format}`')
+    logging.info('- reading data with this format')
     with open(file) as f:
         data = yaml.safe_load(f)
 
-    logging.debug('- parsing data')
+    logging.info('- parsing data')
     schema = Schema(**data)
 
-    logging.debug('- resolving internal references')
+    logging.info('- resolving internal references')
     schema.resolve_refs()
+
+    logging.info('- validating schema')
+    schema.validate()
+
+    logging.info(f'Schema `{schema.name}`, version {schema.schema_ver} is correct')
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     main()
