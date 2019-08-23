@@ -62,6 +62,9 @@ def validate(file: str, format: str):
     logging.debug('- parsing data')
     schema = Schema(**data)
 
+    logging.debug('- resolving internal references')
+    schema.resolve_refs()
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

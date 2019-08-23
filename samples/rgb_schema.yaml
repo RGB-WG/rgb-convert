@@ -1,7 +1,7 @@
 name: RGB
 schema_ver: 1.0.0
-prev_schema: '0'
-meta_fields:
+prev_schema: 0
+field_types:
   ver: u8
   schema: sha256
   ticker: str
@@ -18,45 +18,49 @@ seal_types:
   pruning: none
 proof_types:
   - title: Primary issue
-    meta:
-      ticker: 0..1
-      title: 0..1
-      description: 0..1
-      url: 0..1
-      max_supply: 0..1
-      dust_limit: 1
-      signature: 0..1
+    fields:
+      ticker: optional
+      title: optional
+      description: optional
+      url: optional
+      max_supply: optional
+      dust_limit: single
+      signature: optional
     seals:
-      assets: 1..
-      inflation: 0..1
-      upgrade: 1
-      pruning: 1
+      assets: many
+      inflation: optional
+      upgrade: single
+      pruning: single
   - title: Secondary issue
-    unseals: inflation
-    meta_fields:
-      url: 0..1
-      signature: 0..1
-    seal_types:
-      assets: 1..
-      inflation: 0..1
-      pruning: 1
+    unseals:
+      inflation: single
+    fields:
+      url: optional
+      signature: optional
+    seals:
+      assets: many
+      inflation: optional
+      pruning: single
   - title: Asset version upgrade
-    unseals: upgrade
-    meta_fields:
-      ver: 1
-      schema: 0..1
-      signature: 0..1
-    seal_types:
-      upgrade: 1
+    unseals:
+      upgrade: single
+    fields:
+      ver: single
+      schema: optional
+      signature: optional
+    seals:
+      upgrade: single
   - title: Asset history pruning
-    unseals: pruning
-    meta_fields: [ ]
-    seal_types:
-      assets: 1..
-      pruning: 1
+    unseals:
+      pruning: single
+    fields: [ ]
+    seals:
+      assets: many
+      pruning: single
   - title: Asset transfer
-    unseals: assets
-    meta_fields:
-      ver: 1
-    seal_types:
-      assets: 1..
+    unseals:
+      assets: many
+    fields:
+      ver: single
+    seals:
+      assets: any

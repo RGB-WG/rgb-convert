@@ -17,7 +17,119 @@ from bitcoin.core import ImmutableSerializable
 from ..parse import *
 
 
-class MetaField(ImmutableSerializable):
+class SchemaError(Exception):
+    pass
+
+
+class SchemaInternalRefError(Exception):
+    __slots__ = ['ref_type', 'ref_name', 'section']
+
+    def __init__(self, ref_type: str, ref_name: str, section: str):
+        self.ref_type = ref_type
+        self.ref_name = ref_name
+        self.section = section
+
+    def __str__(self):
+        return f'Unable to resolve {self.ref_type} reference inside `{self.section}` named `{self.ref_name}`'
+
+
+class TypeRef(ImmutableSerializable):
+    @unique
+    class Usage(FieldEnum):
+        optional = 0x00  # 0-1
+        single = 0x01  # =1
+        double = 0x02  # =2
+        any = 0x03  # 0-∞
+        many = 0x04  # 1-∞
+
+    FIELDS = {
+        'ref_name': FieldParser(str),
+        'bounds': FieldParser(Usage)
+    }
+
+    __slots__ = list(FIELDS.keys()) + ['type']
+
+    def __init__(self, name: str, bounds: str):
+        for field_name, field in TypeRef.FIELDS.items():
+            field.parse(self, {'ref_name': name, 'bounds': bounds}, field_name)
+
+    def resolve_ref(self, schema_types: list):
+        try:
+            object.__setattr__(self, 'type', next(type for type in schema_types if type.name == self.ref_name))
+        except StopIteration:
+            object.__setattr__(self, 'type', None)
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        pass
+
+    def stream_serialize(self, f):
+        pass
+
+
+class ProofType(ImmutableSerializable):
+    FIELDS = {
+        'title': FieldParser(str),
+        'unseals': FieldParser(TypeRef, required=False, recursive=True, array=True),
+        'fields': FieldParser(TypeRef, recursive=True, array=True),
+        'seals': FieldParser(TypeRef, recursive=True, array=True)
+    }
+
+    __slots__ = list(FIELDS.keys())
+
+    def __init__(self, **kwargs):
+        for name, field in ProofType.FIELDS.items():
+            field.parse(self, kwargs, name)
+
+    def resolve_refs(self, schema):
+        for meta_field in self.fields:
+            meta_field.resolve_ref(schema.field_types)
+            if meta_field.type is None:
+                raise SchemaInternalRefError(ref_type='field', ref_name=meta_field.ref_name, section='fields')
+        for seal in self.seals:
+            seal.resolve_ref(schema.seal_types)
+            if seal.type is None:
+                raise SchemaInternalRefError(ref_type='seal', ref_name=seal.ref_name, section='seals')
+        if self.unseals is not None:
+            for seal in self.unseals:
+                seal.resolve_ref(schema.seal_types)
+                if seal.type is None:
+                    raise SchemaInternalRefError(ref_type='seal', ref_name=seal.ref_name, section='unseals')
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        pass
+
+    def stream_serialize(self, f):
+        pass
+
+
+class SealType(ImmutableSerializable):
+    @unique
+    class Type(FieldEnum):
+        none = 0x00
+        balance = 0x01
+
+    FIELDS = {
+        'type': FieldParser(Type),
+        'name': FieldParser(str)
+    }
+
+    __slots__ = list(FIELDS.keys())
+
+    def __init__(self, name: str, tp: str):
+        for field_name, field in SealType.FIELDS.items():
+            field.parse(self, {'name': name, 'type': tp}, field_name)
+
+    @classmethod
+    def stream_deserialize(cls, f):
+        pass
+
+    def stream_serialize(self, f):
+        pass
+
+
+class FieldType(ImmutableSerializable):
     @unique
     class Type(FieldEnum):
         str = 0x00
@@ -45,18 +157,8 @@ class MetaField(ImmutableSerializable):
     __slots__ = list(FIELDS.keys())
 
     def __init__(self, name: str, tp: str):
-        for field_name, field in MetaField.FIELDS.items():
+        for field_name, field in FieldType.FIELDS.items():
             field.parse(self, {'name': name, 'type': tp}, field_name)
-
-        # data = list(kwargs.items())
-        # if len(data) is not 1:
-        #     raise FieldParseError(FieldParseError.Kind.wrongFieldType, 'meta_field', f'`{data}`')
-        # data = data[0]
-        # MetaField.FIELDS['name'].parse(self, {'name': data[0]}, 'name')
-        # try:
-        #     object.__setattr__(self, 'type', MetaField.Type.from_str(data[1]))
-        # except KeyError as err:
-        #     raise FieldParseError(FieldParseError.Kind.wrongEnumValue, data[0], f'`{data[1]}`')
 
     @classmethod
     def stream_deserialize(cls, f):
@@ -71,17 +173,20 @@ class Schema(ImmutableSerializable):
         'name': FieldParser(str),
         'schema_ver': FieldParser(str),
         'prev_schema': FieldParser(str),
-        'meta_fields': FieldParser(MetaField, recursive=True, array=True),
-        # 'seal_types': FieldParser(str, True),
-        # 'proof_types': FieldParser(str, True),
+        'field_types': FieldParser(FieldType, recursive=True, array=True),
+        'seal_types': FieldParser(SealType, recursive=True, array=True),
+        'proof_types': FieldParser(ProofType, recursive=True, array=True),
     }
 
     __slots__ = list(FIELDS.keys())
 
     def __init__(self, **kwargs):
-        logging.debug('-- parsing root schema')
         for name, field in Schema.FIELDS.items():
             field.parse(self, kwargs, name)
+
+    def resolve_refs(self):
+        for proof_type in self.proof_types:
+            proof_type.resolve_refs(self)
 
     @classmethod
     def stream_deserialize(cls, f):
