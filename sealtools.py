@@ -120,7 +120,7 @@ def proof_validate(file: str, **kwargs) -> Schema:
     logging.info(f'- loading proof data from `{file}`')
     with open(file) as f:
         data = yaml.safe_load(f)
-    proof = Proof(**data)
+    proof = Proof(schema_obj=schema, **data)
 
 
 if __name__ == "__main__":

@@ -15,31 +15,36 @@
 
 from bitcoin.core import ImmutableSerializable
 
+from openseals.parser import *
+from openseals.data_types import OutPoint
+from openseals.schema.schema import Schema
+
 
 class Seal(ImmutableSerializable):
-    __slots__ = ['vout']
+    FIELDS = {
+        'type': FieldParser(str),
+        'outpoint': FieldParser(OutPoint),
+        'amount': FieldParser(int, required=False)
+    }
 
-    def __init__(self, vout=0xffffffff):
-        self.vout = vout
+    __slots__ = list(FIELDS.keys()) + ['seal_type']
+
+    def __init__(self, schema_obj=None, **kwargs):
+        for field_name, field in Seal.FIELDS.items():
+            field.parse(self, kwargs, field_name)
+        if isinstance(schema_obj, Schema):
+            self.resolve_ref(schema_obj.seal_types)
+
+    def resolve_ref(self, seal_types: list):
+        try:
+            pos = next(num for num, type in enumerate(seal_types) if type.name == self.type)
+            object.__setattr__(self, 'seal_type', seal_types[pos])
+        except StopIteration:
+            object.__setattr__(self, 'seal_type', None)
 
     @classmethod
     def stream_deserialize(cls, f):
         pass
-
-    def stream_serialize(self, f):
-        pass
-
-
-class VoutSeal(Seal):
-    pass
-
-
-class UTXOSeal(Seal):
-    __slots__ = ['txid']
-
-    def __init__(self, txid=b'\x00'*32, vout=0xffffffff):
-        Seal.__init__(self, vout)
-        self.txid = txid
 
     def stream_serialize(self, f):
         pass
