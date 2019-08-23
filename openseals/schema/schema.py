@@ -25,9 +25,9 @@ class Schema(ImmutableSerializable):
         'name': FieldParser(str),
         'schema_ver': FieldParser(SemVer),
         'prev_schema': FieldParser(Sha256Id),
-        'field_types': FieldParser(FieldType, recursive=True, array=True),
-        'seal_types': FieldParser(SealType, recursive=True, array=True),
-        'proof_types': FieldParser(ProofType, recursive=True, array=True),
+        'field_types': FieldParser(FieldType, array=True),
+        'seal_types': FieldParser(SealType, array=True),
+        'proof_types': FieldParser(ProofType, array=True),
     }
 
     __slots__ = list(FIELDS.keys())

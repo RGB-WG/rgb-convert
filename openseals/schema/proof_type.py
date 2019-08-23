@@ -8,9 +8,9 @@ from openseals.parser import *
 class ProofType(ImmutableSerializable):
     FIELDS = {
         'title': FieldParser(str),
-        'unseals': FieldParser(TypeRef, required=False, recursive=True, array=True),
-        'fields': FieldParser(TypeRef, recursive=True, array=True),
-        'seals': FieldParser(TypeRef, recursive=True, array=True)
+        'unseals': FieldParser(TypeRef, required=False, array=True),
+        'fields': FieldParser(TypeRef, array=True),
+        'seals': FieldParser(TypeRef, array=True)
     }
 
     __slots__ = list(FIELDS.keys())

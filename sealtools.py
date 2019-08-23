@@ -23,6 +23,7 @@ import yaml
 import click
 
 from openseals.schema.schema import *
+from openseals.proofs.proof import *
 
 __author__ = "Dr Maxim Orlovsky <orlovsky@pandoracore.com>"
 
@@ -35,10 +36,21 @@ def main():
     pass
 
 
+def guess_format(file: str, kwargs: dict) -> str:
+    format = kwargs['format'] if 'format' in kwargs else None
+    if format is None:
+        format = "yaml" if re.search("\\.ya?ml$", file.lower()) is not None else "binary"
+    elif format.lower() == "yaml" or format.lower() == "binary":
+        format = format.lower()
+    else:
+        sys.exit("Wrong value for --format or -f argument: accepted values are 'yaml' and 'binary'")
+    return format
+
+
 @main.command()
 @click.argument('file')
 @click.option('--format', '-f')
-def schema_validate(file: str, format: str) -> Schema:
+def schema_validate(file: str, **kwargs) -> Schema:
     """
     Reads file containing a proof, schema or a proof history and validates its consistency.
     File can have YAML or binary serialization format. The format is guessed by file extension: YAML files must have
@@ -46,12 +58,7 @@ def schema_validate(file: str, format: str) -> Schema:
     --filetype command-line option, which can take either 'YAML' or 'binary' values
     """
     logging.info(f'Validating schema from `{file}`:')
-    if format is None:
-        format = "yaml" if re.search("\\.ya?ml$", file.lower()) is not None else "binary"
-    elif format.lower() == "yaml" or format.lower() == "binary":
-        format = format.lower()
-    else:
-        sys.exit("Wrong value for --format or -f argument: accepted values are 'yaml' and 'binary'")
+    format = guess_format(file, kwargs)
 
     logging.info(f'- applied format is `{format}`')
     logging.info('- reading data with this format')
@@ -91,6 +98,29 @@ def schema_transcode(infile: str, outfile: str):
     logging.info(
         f'''Schema `{schema.name}`, version {schema.schema_ver} was transcoded into `{outfile}`; {pos} byes written,
           schema hash is {schema.bech32_id()}''')
+
+
+@main.command()
+@click.argument('file')
+@click.option('--format', '-f')
+@click.option('--schema', '-s')
+def proof_validate(file: str, **kwargs) -> Schema:
+    """Loads and validates internal structure for a given proof"""
+    logging.info(f'Validating proof from `{file}`:')
+    format = guess_format(file, kwargs)
+
+    if 'schema' in kwargs:
+        schema_file = kwargs['schema']
+        logging.info(f'- loading schema data from `{schema_file}`')
+        with open(schema_file) as f:
+            data = yaml.safe_load(f)
+        schema = Schema(**data)
+        schema.resolve_refs()
+
+    logging.info(f'- loading proof data from `{file}`')
+    with open(file) as f:
+        data = yaml.safe_load(f)
+    proof = Proof(**data)
 
 
 if __name__ == "__main__":

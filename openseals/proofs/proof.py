@@ -15,12 +15,27 @@
 
 from bitcoin.core import ImmutableSerializable
 
+from openseals.data_types import Sha256Id
+from openseals.parser import *
+
 
 class Proof(ImmutableSerializable):
-    __slots__ = ['ver', 'seals', 'state', 'pubkey', 'metadata', 'parents', 'txid']
+    FIELDS = {
+        'ver': FieldParser(int, required=False),
+        'schema': FieldParser(str, required=False),
+        'network': FieldParser(str, required=False),
+        'pubkey': FieldParser(str, required=False),
+        # 'metadata': FieldParser(ProofMeta, required=False, array=True),
+        # 'seals': FieldParser(Seal, required=False, array=True),
+        'parents': FieldParser(str, required=False, array=True),
+        'txid': FieldParser(str, required=False)
+    }
 
-    def __init__(self, ver=1, seals=None):
-        pass
+    __slots__ = list(FIELDS.keys())
+
+    def __init__(self, schema=None, **kwargs):
+        for name, field in Proof.FIELDS.items():
+            field.parse(self, kwargs, name)
 
     @classmethod
     def stream_deserialize(cls, f):

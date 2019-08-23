@@ -6,7 +6,6 @@ class FieldParseError(Exception):
     class Kind(Enum):
         noRequiredField = "required field is not present"
         wrongFieldType = "wrong field type"
-        nonRecursiveArray = "arrays must be always recursive"
         wrongEnumValue = "wrong enum value"
 
     __slots__ = ['kind', 'field_name', 'details']

@@ -1,0 +1,7 @@
+seals:
+  - type: assets
+    outpoint: 0
+    amount: 100000
+  - type: assets
+    outpoint: 1
+    amount: 900000
