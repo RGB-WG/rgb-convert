@@ -13,7 +13,7 @@
 # If not, see <https://opensource.org/licenses/MIT>.
 
 from bitcoin.core.serialize import ImmutableSerializable, VarStringSerializer, VectorSerializer
-from bitcoin.segwit_addr import bech32_encode, convertbits
+import bitcoin.segwit_addr as bech32
 
 from . import *
 from openseals.data_types import SemVer, Sha256Id
@@ -49,7 +49,7 @@ class Schema(ImmutableSerializable):
                     f'No `unseals` specified for `{proof_type.title}`, the field is required for all non-root proofs')
 
     def bech32_id(self) -> str:
-        return bech32_encode('oss', convertbits(self.GetHash(), 8, 5))
+        return bech32.encode('oss', 1, self.GetHash())
 
     @classmethod
     def stream_deserialize(cls, f):

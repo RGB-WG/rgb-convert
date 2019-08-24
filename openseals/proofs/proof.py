@@ -14,7 +14,7 @@
 
 
 from bitcoin.core import ImmutableSerializable, VectorSerializer
-from bitcoin.segwit_addr import bech32_encode, convertbits
+import bitcoin.segwit_addr as bech32
 
 from openseals.data_types import Sha256Id, PubKey, Network, OutPoint
 from openseals.parser import *
@@ -71,7 +71,7 @@ class Proof(ImmutableSerializable):
         return self.txid is None and self.parents is None
 
     def bech32_id(self) -> str:
-        return bech32_encode('osp', convertbits(self.GetHash(), 8, 5))
+        return bech32.encode('osp', 1, self.GetHash())
 
     @classmethod
     def stream_deserialize(cls, f):
@@ -81,18 +81,15 @@ class Proof(ImmutableSerializable):
         if self.is_root():
             f.write(bytes([self.ver | 0x80]))
             self.schema.stream_serialize(f)
-            f.write(bytes([self.network]))
-            self.root.stream_serialize(f)
+            f.write(bytes([self.network.value]))
+            self.root.stream_serialize(f, short_form=True)
         else:
             f.write(bytes([(self.ver if self.ver is not None else 0x00) & 0x7F]))
 
         VectorSerializer.stream_serialize(MetaField, self.metadata if self.metadata is not None else [], f)
         VectorSerializer.stream_serialize(Seal, self.seals if self.seals is not None else [], f)
 
-        if self.pubkey is None:
-            f.write(b'\x00')
-        else:
-            f.write(b'\x01')
+        if self.pubkey is not None:
             self.pubkey.stream_serialize(f)
 
         if not self.is_pruned():

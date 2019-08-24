@@ -1,6 +1,6 @@
 # This proof has bech32-encoded id `osp1qad00ptnl87eh32r6slznu9pd6v67pkddnc7v7e34srd6uphgetsqfs8lh`
 ver: 1
-schema: oss1u59j96azjzffsehwvm8whnkn8v4zxre3zyg29t4atu3yj4adkzvs9d5tlc
+schema: oss1pu59j96azjzffsehwvm8whnkn8v4zxre3zyg29t4atu3yj4adkzvs3lu54f
       # or 100c02160d1d151204111c0b1d150b050a0804021119030602150c07131613170e071b0c0e17191009090212021d1a051205141c
 network: bitcoin:testnet
 root: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4

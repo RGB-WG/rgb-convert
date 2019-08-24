@@ -8,8 +8,8 @@ field_types:
   title: str
   description: str
   url: str
-  max_supply: u64
-  dust_limit: u64
+  max_supply: vi
+  dust_limit: vi
   signature: signature
 seal_types:
   assets: balance

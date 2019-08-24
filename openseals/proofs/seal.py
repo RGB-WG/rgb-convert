@@ -63,4 +63,5 @@ class Seal(ImmutableSerializable):
         if self.seal_type is None:
             raise SchemaError(
                 f'Unable to serialize sealed state `{self.type}`: no schema seal type is provided for the value `{self.unparsed_state}`')
+        self.outpoint.stream_serialize(f)
         self.seal_type.stream_serialize_state(self.state, f)

@@ -4,7 +4,7 @@ from enum import unique
 from bitcoin.core import lx, b2lx
 from bitcoin.core.key import CPubKey
 from bitcoin.core.serialize import *
-from bitcoin.segwit_addr import bech32_decode
+import bitcoin.segwit_addr as bech32
 
 from openseals.parser.field_parser import FieldEnum
 
@@ -59,11 +59,12 @@ class Sha256Id(ImmutableSerializable):
     def __init__(self, data):
         value = None
         if isinstance(data, str):
-            if len(data) is 64:
-                value = lx(data)
-            elif re.search(re.compile('^(oss|osp|bc|tb)\\d[0-6]?[02-9ac-hj-np-z]+$', re.IGNORECASE), data):
-                (hrf, value) = bech32_decode(data)
+            match = re.search(re.compile('^(oss|osp|bc|tb)\\d[0-6]?[02-9ac-hj-np-z]+$', re.IGNORECASE), data)
+            if match is not None:
+                (hrf, value) = bech32.decode(match.group(1), data)
                 value = bytes(value)
+            elif len(data) is 64:
+                value = lx(data)
             else:
                 raise ValueError(
                     f'Sha256Id requires 64-char hex string or bech32-encoded string, instead {data} is provided')
@@ -141,10 +142,10 @@ class OutPoint(ImmutableSerializable):
         if self.txid is not None and len(self.txid) is not 32:
             raise ValueError('OutPoint must have a valid txid with length of 32 bytes')
         if short_form:
-            f.write(struct.pack(b"<I", self.vout))
+            VarIntSerializer.stream_serialize(self.vout, f)
             f.write(self.txid) if self.txid is not None else ()
         elif self.txid is None:
             raise ValueError('OutPoint can not be zero/None for non-short serialization form')
         else:
             f.write(self.txid)
-            f.write(struct.pack(b"<I", self.vout))
+            VarIntSerializer.stream_serialize(self.vout, f)
