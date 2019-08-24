@@ -20,6 +20,7 @@ from openseals.data_types import Sha256Id, PubKey, Network, OutPoint
 from openseals.parser import *
 from openseals.proofs.meta_field import MetaField
 from openseals.proofs.seal import Seal
+from openseals.schema.schema import Schema
 
 
 class Proof(ImmutableSerializable):
@@ -35,7 +36,7 @@ class Proof(ImmutableSerializable):
         'txid': FieldParser(Sha256Id, required=False)
     }
 
-    __slots__ = list(FIELDS.keys())
+    __slots__ = list(FIELDS.keys()) + ['schema_obj']
 
     def __init__(self, schema_obj=None, **kwargs):
         for name, field in Proof.FIELDS.items():
@@ -52,6 +53,16 @@ class Proof(ImmutableSerializable):
             raise FieldParseError(FieldParseError.Kind.noRequiredField,
                                   'parents' if self.parents is None else 'txid',
                                   'both `parents` and `txid` fields must be present for non-pruned proof data')
+        if isinstance(schema_obj, Schema):
+            self.resolve_schema(schema_obj)
+
+    def resolve_schema(self, schema: Schema):
+        object.__setattr__(self, 'schema_obj', schema)
+        [field.resolve_schema(schema) for field in self.metadata]
+        [seal.resolve_schema(schema) for seal in self.seals]
+
+    def validate(self):
+        pass
 
     def is_root(self) -> bool:
         return False if self.root is None else True
@@ -68,7 +79,7 @@ class Proof(ImmutableSerializable):
 
     def stream_serialize(self, f):
         if self.is_root():
-            f.write(bytes([self.ver & 0x80]))
+            f.write(bytes([self.ver | 0x80]))
             self.schema.stream_serialize(f)
             f.write(bytes([self.network]))
             self.root.stream_serialize(f)

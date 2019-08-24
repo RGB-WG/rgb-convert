@@ -18,22 +18,35 @@ from bitcoin.core import ImmutableSerializable
 from openseals.parser import *
 from openseals.data_types import OutPoint
 from openseals.schema.schema import Schema
+from openseals.schema.errors import SchemaError
 
 
 class Seal(ImmutableSerializable):
     FIELDS = {
         'type': FieldParser(str),
         'outpoint': FieldParser(OutPoint),
-        'amount': FieldParser(int, required=False)
     }
 
-    __slots__ = list(FIELDS.keys()) + ['seal_type']
+    __slots__ = list(FIELDS.keys()) + ['unparsed_state', 'seal_type', 'state']
 
     def __init__(self, schema_obj=None, **kwargs):
         for field_name, field in Seal.FIELDS.items():
             field.parse(self, kwargs, field_name)
+        data = {}
+        for item in kwargs.keys():
+            if item not in Seal.FIELDS.keys():
+                data[item] = kwargs[item]
+        object.__setattr__(self, 'unparsed_state', data)
+        object.__setattr__(self, 'state', None)
+        object.__setattr__(self, 'seal_type', None)
         if isinstance(schema_obj, Schema):
-            self.resolve_ref(schema_obj.seal_types)
+            self.resolve_schema(schema_obj)
+
+    def resolve_schema(self, schema: Schema):
+        self.resolve_ref(schema.seal_types)
+        if self.seal_type is not None:
+            state = self.seal_type.state_from_dict(self.unparsed_state)
+            object.__setattr__(self, 'state', state)
 
     def resolve_ref(self, seal_types: list):
         try:
@@ -47,4 +60,7 @@ class Seal(ImmutableSerializable):
         pass
 
     def stream_serialize(self, f):
-        pass
+        if self.seal_type is None:
+            raise SchemaError(
+                f'Unable to serialize sealed state `{self.type}`: no schema seal type is provided for the value `{self.unparsed_state}`')
+        self.seal_type.stream_serialize_state(self.state, f)

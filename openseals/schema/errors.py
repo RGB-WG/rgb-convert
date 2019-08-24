@@ -1,5 +1,11 @@
 class SchemaError(Exception):
-    pass
+    __slots__ = ['description']
+
+    def __init__(self, description: str):
+        self.description = description
+
+    def __str__(self):
+        return self.description
 
 
 class SchemaInternalRefError(SchemaError):
