@@ -7,6 +7,7 @@ class FieldParseError(Exception):
         noRequiredField = "required field is not present"
         wrongFieldType = "wrong field type"
         wrongEnumValue = "wrong enum value"
+        extraField = "extra field that must be absent"
 
     __slots__ = ['kind', 'field_name', 'details']
 

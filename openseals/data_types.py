@@ -135,10 +135,11 @@ class OutPoint(ImmutableSerializable):
             raise ValueError('OutPoint can be constructed only from string `txid_hex:vout` or `int`')
 
     @classmethod
-    def stream_deserialize(cls, f):
+    def stream_deserialize(cls, f, **kwargs):
         pass
 
-    def stream_serialize(self, f, short_form=False):
+    def stream_serialize(self, f, **kwargs):
+        short_form = kwargs['short_form'] if 'short_form' in kwargs else False
         if self.txid is not None and len(self.txid) is not 32:
             raise ValueError('OutPoint must have a valid txid with length of 32 bytes')
         if short_form:

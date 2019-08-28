@@ -13,12 +13,13 @@ class FieldEnum(IntEnum):
 class FieldParser:
     """Small automation class for checking fields coming from deserealized JSON, YAML etc"""
 
-    __slots__ = ['field_type', 'required', 'array', 'enum']
+    __slots__ = ['field_type', 'required', 'array', 'enum', 'default']
 
-    def __init__(self, field_type: type, required=True, array=False):
+    def __init__(self, field_type: type, required=True, array=False, default=None):
         self.field_type = field_type
         self.required = required
         self.array = array
+        self.default = default
 
     def parse(self, obj: object, kwargs, field_name: str) -> bool:
         """Assigns a value of a proper type from the `kwargs` and returns whether the required field was presented"""
@@ -30,7 +31,7 @@ class FieldParser:
         elif self.required:
             raise FieldParseError(FieldParseError.Kind.noRequiredField, field_name)
         else:
-            object.__setattr__(obj, field_name, None)
+            object.__setattr__(obj, field_name, self.default)
             return False
 
         if self.array:

@@ -56,12 +56,15 @@ class Seal(ImmutableSerializable):
             object.__setattr__(self, 'seal_type', None)
 
     @classmethod
-    def stream_deserialize(cls, f):
+    def stream_deserialize(cls, f, **kwargs):
         pass
 
-    def stream_serialize(self, f):
-        if self.seal_type is None:
-            raise SchemaError(
-                f'Unable to serialize sealed state `{self.type}`: no schema seal type is provided for the value `{self.unparsed_state}`')
-        self.outpoint.stream_serialize(f)
-        self.seal_type.stream_serialize_state(self.state, f)
+    def stream_serialize(self, f, **kwargs):
+        state = kwargs['state'] if 'state' in kwargs else False
+        if state is True:
+            if self.seal_type is None:
+                raise SchemaError(
+                    f'Unable to serialize sealed state `{self.type}`: no schema seal type is provided for the value `{self.unparsed_state}`')
+            self.seal_type.stream_serialize_state(self.state, f)
+        else:
+            self.outpoint.stream_serialize(f, short=True)
