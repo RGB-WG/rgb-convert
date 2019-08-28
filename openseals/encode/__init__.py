@@ -12,18 +12,18 @@ class FlagVarIntSerializer(Serializer):
         if i < 0:
             raise ValueError('FlagVarInt must be a non-negative integer')
         elif i < 0xfc:
-            f.write(bytes([i]))
+            f.write(bytes([i | mask]))
         elif i <= 0xff:
-            f.write(bytes(0x7c & mask))
+            f.write(bytes(0x7c | mask))
             f.write(bytes([i]))
         elif i <= 0xffff:
-            f.write(bytes(0x7d & mask))
+            f.write(bytes(0x7d | mask))
             f.write(struct.pack(b'<H', i))
         elif i <= 0xffffffff:
-            f.write(bytes(0x7e & mask))
+            f.write(bytes(0x7e | mask))
             f.write(struct.pack(b'<I', i))
         else:
-            f.write(bytes(0x7f & mask))
+            f.write(bytes(0x7f | mask))
             f.write(struct.pack(b'<Q', i))
 
     @classmethod

@@ -1,8 +1,7 @@
-# This proof has bech32-encoded id `osp1qad00ptnl87eh32r6slznu9pd6v67pkddnc7v7e34srd6uphgetsqfs8lh`
+# This proof has bech32-encoded id `pf1pw5jqd2mxmqcts3gam469c9q0k02c9h0aphgrq3m0svn6wq3hh8usyyrzfj`
 ver: 1
 format: root
-schema: oss1pu59j96azjzffsehwvm8whnkn8v4zxre3zyg29t4atu3yj4adkzvs3lu54f
-      # or 100c02160d1d151204111c0b1d150b050a0804021119030602150c07131613170e071b0c0e17191009090212021d1a051205141c
+schema: sm1p3tykae9nf5zlf4yw00hpeq6uajt5r532vtsphnsjc4eh0x5aqdaqmu2sjv
 network: bitcoin:testnet
 root: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
 pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1

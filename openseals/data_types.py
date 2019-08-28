@@ -11,10 +11,10 @@ from openseals.parser.field_parser import FieldEnum
 
 @unique
 class Network(FieldEnum):
-    bitcoinMainnet = 0x00
-    bitcoinTestnet = 0x01
-    bitcoinRegnet = 0x02
-    bitcoinSegnet = 0x03
+    bitcoinMainnet = 0x01
+    bitcoinTestnet = 0x02
+    bitcoinRegnet = 0x03
+    bitcoinSegnet = 0x04
     liquidV1 = 0x10
 
     @classmethod
@@ -59,7 +59,7 @@ class Sha256Id(ImmutableSerializable):
     def __init__(self, data):
         value = None
         if isinstance(data, str):
-            match = re.search(re.compile('^(oss|osp|bc|tb)\\d[0-6]?[02-9ac-hj-np-z]+$', re.IGNORECASE), data)
+            match = re.search(re.compile('^([a-z]{1,4})\\d[0-6]?[02-9ac-hj-np-z]+$', re.IGNORECASE), data)
             if match is not None:
                 (hrf, value) = bech32.decode(match.group(1), data)
                 value = bytes(value)
@@ -139,7 +139,7 @@ class OutPoint(ImmutableSerializable):
         pass
 
     def stream_serialize(self, f, **kwargs):
-        short_form = kwargs['short_form'] if 'short_form' in kwargs else False
+        short_form = kwargs['short'] if 'short' in kwargs else False
         if self.txid is not None and len(self.txid) is not 32:
             raise ValueError('OutPoint must have a valid txid with length of 32 bytes')
         if short_form:

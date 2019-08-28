@@ -49,7 +49,7 @@ class Schema(ImmutableSerializable):
                     f'No `unseals` specified for `{proof_type.title}`, the field is required for all non-root proofs')
 
     def bech32_id(self) -> str:
-        return bech32.encode('oss', 1, self.GetHash())
+        return bech32.encode('sm', 1, self.GetHash())
 
     @classmethod
     def stream_deserialize(cls, f):

@@ -13,6 +13,7 @@
 # If not, see <https://opensource.org/licenses/MIT>.
 
 from enum import unique, IntEnum
+from functools import reduce
 
 from bitcoin.core import ImmutableSerializable, VectorSerializer, VarIntSerializer
 import bitcoin.segwit_addr as bech32
@@ -81,7 +82,7 @@ class Proof(ImmutableSerializable):
         pass
 
     def bech32_id(self) -> str:
-        return bech32.encode('osp', 1, self.GetHash())
+        return bech32.encode('pf', 1, self.GetHash())
 
     @classmethod
     def stream_deserialize(cls, f, **kwargs):
@@ -91,8 +92,8 @@ class Proof(ImmutableSerializable):
         # Serializing proof header
         # - version with flag
         ver = self.ver if self.ver is not None else 0
-        flag = 0 if self.format is ProofFormat.ordinary or self.format is ProofFormat.burn else 1
-        FlagVarIntSerializer.stream_serialize((flag, ver), f)
+        flag = self.format is ProofFormat.root or self.format is ProofFormat.upgrade
+        FlagVarIntSerializer.stream_serialize((ver, flag), f)
         # - root proof fields
         if self.format is ProofFormat.root:
             self.schema.stream_serialize(f)
@@ -108,10 +109,17 @@ class Proof(ImmutableSerializable):
 
         # Serializing proof body
         if self.seals is None:
-            ZeroBytesSerializer.stream_serialize(1, f)
+            ZeroBytesSerializer.stream_serialize(2, f)
         else:
             VectorSerializer.stream_serialize(Seal, self.seals, f, inner_params={'state': False})
-            VectorSerializer.stream_serialize(Seal, self.seals, f, inner_params={'state': True})
+            length = reduce((lambda acc, seal: acc + len(seal.serialize({'state': True}))), [0] + self.seals)
+            VarIntSerializer.stream_serialize(length, f)
+            [seal.stream_serialize(f, state=True) for seal in self.seals]
+
+        length = reduce((lambda acc, field: acc + len(field.serialize())), [0] + self.metadata)
+        VarIntSerializer.stream_serialize(length, f)
+        [field.stream_serialize(f) for field in self.metadata]
+
         VectorSerializer.stream_serialize(MetaField, self.metadata if self.metadata is not None else [], f)
 
         # Serializing original public key
