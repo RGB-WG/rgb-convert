@@ -1,4 +1,4 @@
-# This file is a part of Python OpenSeals library
+# This file is a part of Python OpenSeals library and tools
 # Written in 2019 by
 #     Dr. Maxim Orlovsky <orlovsky@pandoracore.com>, Pandora Core AG, Swiss
 #     with support of Bitfinex and other RGB project contributors

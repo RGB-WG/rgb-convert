@@ -1,4 +1,4 @@
-# This file is a part of Python OpenSeals library
+# This file is a part of Python OpenSeals library and tools
 # Written in 2019 by
 #     Dr. Maxim Orlovsky <orlovsky@pandoracore.com>, Pandora Core AG, Swiss
 #     with support of Bitfinex and other RGB project contributors
@@ -12,8 +12,7 @@
 # along with this software.
 # If not, see <https://opensource.org/licenses/MIT>.
 
-
-from bitcoin.core import ImmutableSerializable
+from bitcoin.core.serialize import ImmutableSerializable
 
 from openseals.parser import *
 from openseals.data_types import OutPoint
@@ -57,7 +56,11 @@ class Seal(ImmutableSerializable):
 
     @classmethod
     def stream_deserialize(cls, f, **kwargs):
-        pass
+        schema_obj = kwargs['schema_obj'] if 'schema_obj' not in kwargs else None
+        if not isinstance(schema_obj, Schema):
+            raise ValueError(f'`schema_obj` parameter must be of Schema type; got `{schema_obj}` instead')
+
+        outpoint = OutPoint.stream_deserialize(f, short=True)
 
     def stream_serialize(self, f, **kwargs):
         state = kwargs['state'] if 'state' in kwargs else False

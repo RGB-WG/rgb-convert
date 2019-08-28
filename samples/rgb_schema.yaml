@@ -10,7 +10,7 @@ field_types:
   url: str
   max_supply: vi
   dust_limit: vi
-  signature: signature
+  signature: ecdsa
 seal_types:
   assets: balance
   inflation: none

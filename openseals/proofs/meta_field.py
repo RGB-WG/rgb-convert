@@ -1,4 +1,18 @@
-from bitcoin.core import ImmutableSerializable
+# This file is a part of Python OpenSeals library and tools
+# Written in 2019 by
+#     Dr. Maxim Orlovsky <orlovsky@pandoracore.com>, Pandora Core AG, Swiss
+#     with support of Bitfinex and other RGB project contributors
+#
+# To the extent possible under law, the author(s) have dedicated all
+# copyright and related and neighboring rights to this software to
+# the public domain worldwide. This software is distributed without
+# any warranty.
+#
+# You should have received a copy of the MIT License
+# along with this software.
+# If not, see <https://opensource.org/licenses/MIT>.
+
+from bitcoin.core.serialize import ImmutableSerializable
 
 from openseals.parser import *
 from openseals.schema.schema import Schema
@@ -33,13 +47,18 @@ class MetaField(ImmutableSerializable):
         except StopIteration:
             object.__setattr__(self, 'field_type', None)
 
-
     @classmethod
-    def stream_deserialize(cls, f):
-        pass
+    def stream_deserialize(cls, f, **kwargs):
+        if 'schema_obj' not in kwargs:
+            raise AttributeError('MetaField.stream_deserialize must be provided with `schema_obj` parameter')
+        schema_obj = kwargs['schema_obj']
+        if not isinstance(schema_obj, Schema):
+            raise ValueError(f'`schema_obj` parameter must be of Schema type; got `{schema_obj}` instead')
 
-    def stream_serialize(self, f):
+        self.field_type.stream_deserialize_value(f)
+
+    def stream_serialize(self, f, **kwargs):
         if self.field_type is None:
             raise SchemaError(
-                f'Unable to serialize field `{self.type}`: no schema field type is provided for the value `{self.value}`')
+                f'Unable to serialize field `{self.type}`: no schema field type is provided for a value `{self.value}`')
         self.field_type.stream_serialize_value(self.value, f)

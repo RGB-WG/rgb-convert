@@ -1,4 +1,4 @@
-# This file is a part of Python OpenSeals library
+# This file is a part of Python OpenSeals library and tools
 # Written in 2019 by
 #     Dr. Maxim Orlovsky <orlovsky@pandoracore.com>, Pandora Core AG, Swiss
 #     with support of Bitfinex and other RGB project contributors
@@ -16,7 +16,7 @@ from bitcoin.core.serialize import ImmutableSerializable, VarStringSerializer, V
 import bitcoin.segwit_addr as bech32
 
 from . import *
-from openseals.data_types import SemVer, Sha256Id
+from openseals.data_types import SemVer, Hash256Id
 from openseals.parser import *
 
 
@@ -24,7 +24,7 @@ class Schema(ImmutableSerializable):
     FIELDS = {
         'name': FieldParser(str),
         'schema_ver': FieldParser(SemVer),
-        'prev_schema': FieldParser(Sha256Id),
+        'prev_schema': FieldParser(Hash256Id),
         'field_types': FieldParser(FieldType, array=True),
         'seal_types': FieldParser(SealType, array=True),
         'proof_types': FieldParser(ProofType, array=True),

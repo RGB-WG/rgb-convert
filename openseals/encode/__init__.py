@@ -1,6 +1,20 @@
+# This file is a part of Python OpenSeals library and tools
+# Written in 2019 by
+#     Dr. Maxim Orlovsky <orlovsky@pandoracore.com>, Pandora Core AG, Swiss
+#     with support of Bitfinex and other RGB project contributors
+#
+# To the extent possible under law, the author(s) have dedicated all
+# copyright and related and neighboring rights to this software to
+# the public domain worldwide. This software is distributed without
+# any warranty.
+#
+# You should have received a copy of the MIT License
+# along with this software.
+# If not, see <https://opensource.org/licenses/MIT>.
+
 import struct
 
-from bitcoin.core import Serializer, ser_read
+from bitcoin.core.serialize import Serializer, ser_read
 
 
 class FlagVarIntSerializer(Serializer):
@@ -33,15 +47,16 @@ class FlagVarIntSerializer(Serializer):
         flag = True if mask is 0x80 else False
         r = r & 0x7f
         if r < 0x7c:
-            return r, flag
+            val = r
         elif r == 0x7c:
-            return ser_read(f, 1)[0], flag
+            val = ser_read(f, 1)[0]
         elif r == 0xfd:
-            return struct.unpack(b'<H', ser_read(f, 2))[0]
+            val = struct.unpack(b'<H', ser_read(f, 2))[0]
         elif r == 0xfe:
-            return struct.unpack(b'<I', ser_read(f, 4))[0]
+            val = struct.unpack(b'<I', ser_read(f, 4))[0]
         else:
-            return struct.unpack(b'<Q', ser_read(f, 8))[0]
+            val = struct.unpack(b'<Q', ser_read(f, 8))[0]
+        return val, flag
 
 
 class ZeroBytesSerializer(Serializer):
@@ -53,3 +68,9 @@ class ZeroBytesSerializer(Serializer):
     @classmethod
     def stream_deserialize(cls, f):
         raise RuntimeError('ZeroBytesSerializer.stream_deserialize should never be called')
+
+
+__all__ = [
+    'FlagVarIntSerializer',
+    'ZeroBytesSerializer'
+]

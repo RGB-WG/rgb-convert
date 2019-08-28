@@ -1,4 +1,17 @@
-import logging
+# This file is a part of Python OpenSeals library and tools
+# Written in 2019 by
+#     Dr. Maxim Orlovsky <orlovsky@pandoracore.com>, Pandora Core AG, Swiss
+#     with support of Bitfinex and other RGB project contributors
+#
+# To the extent possible under law, the author(s) have dedicated all
+# copyright and related and neighboring rights to this software to
+# the public domain worldwide. This software is distributed without
+# any warranty.
+#
+# You should have received a copy of the MIT License
+# along with this software.
+# If not, see <https://opensource.org/licenses/MIT>.
+
 from enum import IntEnum
 
 from .errors import *
@@ -23,7 +36,6 @@ class FieldParser:
 
     def parse(self, obj: object, kwargs, field_name: str) -> bool:
         """Assigns a value of a proper type from the `kwargs` and returns whether the required field was presented"""
-        logging.debug(f'-- parsing field `{field_name}` of `{self.field_type}`')
 
         parsed = None
         if field_name in kwargs:
@@ -35,7 +47,6 @@ class FieldParser:
             return False
 
         if self.array:
-            logging.debug('--- reading array')
             if isinstance(val, list):
                 parsed = [self.field_type(**item) for item in val]
             elif isinstance(val, dict):
@@ -51,7 +62,6 @@ class FieldParser:
             else:
                 raise FieldParseError(FieldParseError.Kind.wrongFieldType, field_name)
         elif issubclass(self.field_type, FieldEnum) and isinstance(val, str):
-            logging.debug('--- detected enum')
             try:
                 parsed = self.field_type.from_str(val)
             except KeyError as err:

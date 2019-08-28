@@ -1,11 +1,11 @@
 # This proof has bech32-encoded id `pf1pw5jqd2mxmqcts3gam469c9q0k02c9h0aphgrq3m0svn6wq3hh8usyyrzfj`
 ver: 1
 format: root
-schema: sm1p3tykae9nf5zlf4yw00hpeq6uajt5r532vtsphnsjc4eh0x5aqdaqmu2sjv
+schema: sm1p954j0qvk8wnyzcs7c84h97m6dcjy7eey80kf2whc7a50lyqf68lq0claj8
 network: bitcoin:testnet
 root: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
 pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1
-metadata:
+fields:
   title: Private Company Ltd Shares
   ticker: PLS
   dust_limit: 1
