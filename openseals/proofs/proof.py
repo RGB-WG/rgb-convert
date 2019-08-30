@@ -223,7 +223,7 @@ class Proof(ImmutableSerializable):
                 # -- reading seal with the current type number
                 seal = Seal.stream_deserialize(f, type_no=seal_type_no, schema_obj=schema_obj)
             except BaseException as ex:
-                # due to some strange but python 3 is unable to capture SeparatorByteSignal exception by its type,
+                # due to some strange bug, python 3 is unable to capture SeparatorByteSignal exception by its type,
                 # and `isinstance(ex, SeparatorByteSignal)` returns False as well :(
                 # so we have to capture generic exception and re-raise if it is not SeparatorByteSignal, which
                 # can be determined only by the presence of its method

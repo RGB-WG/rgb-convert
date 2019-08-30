@@ -38,9 +38,6 @@ class TypeRef(ImmutableSerializable):
         def is_fixed(self) -> bool:
             return self.min() is self.max() and self.min() > 0
 
-        def is_array(self) -> bool:
-            return not self.is_fixed() and self.min() > 0
-
     FIELDS = {
         'ref_name': FieldParser(str),
         'bounds': FieldParser(Usage)
@@ -66,9 +63,6 @@ class TypeRef(ImmutableSerializable):
             value = self.type.stream_deserialize_value(f)
         elif self.bounds.is_fixed():
             value = [self.type.stream_deserialize_value(f) for n in range(0, self.bounds.min())]
-        elif self.bounds.is_array():
-            no = VarIntSerializer.stream_deserialize(f)
-            value = [self.type.stream_deserialize_value(f) for n in range(0, no)]
         elif self.bounds is TypeRef.Usage.optional:
             if self.type.type is FieldType.Type.pubkey:
                 key = ser_read(f, 1)
@@ -85,7 +79,7 @@ class TypeRef(ImmutableSerializable):
             try:
                 value = self.type.stream_deserialize_value(f)
             except BaseException as ex:
-                # due to some strange but python 3 is unable to capture SeparatorByteSignal exception by its type,
+                # due to some strange bug, python 3 is unable to capture SeparatorByteSignal exception by its type,
                 # and `isinstance(ex, SeparatorByteSignal)` returns False as well :(
                 # so we have to capture generic exception and re-raise if it is not SeparatorByteSignal, which
                 # can be determined only by the presence of its method
@@ -109,6 +103,9 @@ class TypeRef(ImmutableSerializable):
                 value = None if value is bytes([0] * 20) else value
             else:
                 raise SchemaError(f'optional fields can be only of `str`, `fvi`, `bytes` and complex types')
+        else:
+            no = VarIntSerializer.stream_deserialize(f)
+            value = [self.type.stream_deserialize_value(f) for n in range(0, no)]
 
         return value
 
