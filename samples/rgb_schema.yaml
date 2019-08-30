@@ -17,7 +17,7 @@ seal_types:
   upgrade: none
   pruning: none
 proof_types:
-  - title: Primary issue
+  - name: primary_issue
     fields:
       ticker: optional
       title: optional
@@ -31,7 +31,7 @@ proof_types:
       inflation: optional
       upgrade: single
       pruning: single
-  - title: Secondary issue
+  - name: secondary_issue
     unseals:
       inflation: single
     fields:
@@ -41,7 +41,7 @@ proof_types:
       assets: many
       inflation: optional
       pruning: single
-  - title: Asset version upgrade
+  - name: upgrade_signal
     unseals:
       upgrade: single
     fields:
@@ -50,14 +50,14 @@ proof_types:
       signature: optional
     seals:
       upgrade: single
-  - title: Asset history pruning
+  - name: history_prune
     unseals:
       pruning: single
     fields: [ ]
     seals:
       assets: many
       pruning: single
-  - title: Asset transfer
+  - name: asset_transfer
     unseals:
       assets: many
     fields:

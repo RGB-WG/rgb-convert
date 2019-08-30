@@ -13,12 +13,17 @@
 # If not, see <https://opensource.org/licenses/MIT>.
 
 import struct
+from enum import Enum, auto
 
 from bitcoin.core.serialize import Serializer, ser_read
 
-
 class FlagVarIntSerializer(Serializer):
     """Serialization of flag-prefixed variable length ints"""
+
+    class Separator(Exception, Enum):
+        EOL = auto()
+        EOF = auto()
+
     @classmethod
     def stream_serialize(cls, val, f):
         (i, flag) = val
@@ -37,25 +42,26 @@ class FlagVarIntSerializer(Serializer):
             f.write(bytes(0x7e | mask))
             f.write(struct.pack(b'<I', i))
         else:
-            f.write(bytes(0x7f | mask))
-            f.write(struct.pack(b'<Q', i))
+            raise ValueError(f"FlagVarInt can't be greater than 2^32; got {i} instead")
 
     @classmethod
     def stream_deserialize(cls, f):
-        r = ser_read(f, 1)[0]
+        val = ser_read(f, 1)[0]
         mask = 0x80 & r
         flag = True if mask is 0x80 else False
-        r = r & 0x7f
+        r = val & 0x7f
         if r < 0x7c:
             val = r
         elif r == 0x7c:
             val = ser_read(f, 1)[0]
-        elif r == 0xfd:
+        elif r == 0x7d:
             val = struct.unpack(b'<H', ser_read(f, 2))[0]
-        elif r == 0xfe:
+        elif r == 0x7e:
             val = struct.unpack(b'<I', ser_read(f, 4))[0]
-        else:
-            val = struct.unpack(b'<Q', ser_read(f, 8))[0]
+        elif val == 0x7f:
+            raise FlagVarIntSerializer.Separator.EOL
+        elif val == 0xff:
+            raise FlagVarIntSerializer.Separator.EOF
         return val, flag
 
 

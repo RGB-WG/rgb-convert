@@ -4,18 +4,19 @@ format: root
 schema: sm1p954j0qvk8wnyzcs7c84h97m6dcjy7eey80kf2whc7a50lyqf68lq0claj8
 network: bitcoin:testnet
 root: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
-pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1
+type_name: primary_issue
 fields:
   title: Private Company Ltd Shares
   ticker: PLS
   dust_limit: 1
 seals:
-  - type: assets
+  - type_name: assets
     outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:0
     amount: 1000000
-  - type: inflation
+  - type_name: inflation
     outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:1
-  - type: upgrade
+  - type_name: upgrade
     outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:3
-  - type: pruning
+  - type_name: pruning
     outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:2
+pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1

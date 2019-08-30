@@ -41,6 +41,20 @@ class SealType(ImmutableSerializable):
         else:
             return None
 
+    def state_from_blob(self, blob: bytes) -> (any, int):
+        if self.type is SealType.Type.balance:
+            if blob[0] == 0xfd:
+                shift = 3
+            elif blob[0] == 0xfe:
+                shift = 5
+            elif blob[0] == 0xff:
+                shift = 9
+            else:
+                shift = 1
+            return VarIntSerializer.deserialize(blob), shift
+        else:
+            return None, 0
+
     def stream_serialize_state(self, state, f):
         if self.type is SealType.Type.balance:
             VarIntSerializer.stream_serialize(state, f)

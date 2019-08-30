@@ -21,7 +21,7 @@ from openseals.parser import *
 
 class ProofType(ImmutableSerializable):
     FIELDS = {
-        'title': FieldParser(str),
+        'name': FieldParser(str),
         'unseals': FieldParser(TypeRef, required=False, array=True),
         'fields': FieldParser(TypeRef, array=True),
         'seals': FieldParser(TypeRef, array=True)
@@ -53,7 +53,7 @@ class ProofType(ImmutableSerializable):
         pass
 
     def stream_serialize(self, f):
-        VarStringSerializer.stream_serialize(self.title.encode('utf-8'), f)
+        VarStringSerializer.stream_serialize(self.name.encode('utf-8'), f)
         VectorSerializer.stream_serialize(TypeRef, self.fields, f)
         VectorSerializer.stream_serialize(TypeRef, [] if self.unseals is None else self.unseals, f)
         VectorSerializer.stream_serialize(TypeRef, self.seals, f)

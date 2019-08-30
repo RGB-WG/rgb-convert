@@ -11,7 +11,8 @@
 # You should have received a copy of the MIT License
 # along with this software.
 # If not, see <https://opensource.org/licenses/MIT>.
-import io
+
+from io import BytesIO
 from enum import unique
 from functools import reduce
 
@@ -23,7 +24,7 @@ from openseals.data_types import Hash256Id, PubKey, Network, OutPoint
 from openseals.parser import *
 from openseals.proofs.meta_field import MetaField
 from openseals.proofs.seal import Seal
-from openseals.schema.schema import Schema
+from openseals.schema.schema import Schema, SchemaError
 
 
 @unique
@@ -42,25 +43,32 @@ class Proof(ImmutableSerializable):
         'schema': FieldParser(Hash256Id, required=False),
         'network': FieldParser(Network, required=False),
         'root': FieldParser(OutPoint, required=False),
-        'pubkey': FieldParser(PubKey, required=False),
+        'type_name': FieldParser(str, required=True),
         'fields': FieldParser(MetaField, required=False, array=True),
         'seals': FieldParser(Seal, required=False, array=True),
+        'pubkey': FieldParser(PubKey, required=False),
         'parents': FieldParser(Hash256Id, required=False, array=True),
         'txid': FieldParser(Hash256Id, required=False)
     }
 
-    __slots__ = list(FIELDS.keys()) + ['schema_obj', 'state', 'metadata']
+    __slots__ = list(FIELDS.keys()) + ['schema_obj', 'state', 'metadata', 'type_no', 'proof_type']
 
-    def __init__(self, schema_obj=None, **kwargs):
+    def __init__(self, type_no=None, schema_obj=None, **kwargs):
         if 'format' in kwargs and isinstance(kwargs['format'], ProofFormat):
+            if type_no is None:
+                raise AttributeError('constructing proof requires providing type id')
+            object.__setattr__(self, 'type_no', type_no)
+            object.__setattr__(self, 'type_name', None)
+            object.__setattr__(self, 'fields', None)
+            object.__setattr__(self, 'state', None)
+            object.__setattr__(self, 'metadata', None)
             [object.__setattr__(self, attr, value) for attr, value in kwargs]
             object.__setattr__(self, 'schema_obj', schema_obj)
-            object.__setattr__(self, 'state', kwargs['state'] if 'state' in kwargs else None)
-            object.__setattr__(self, 'metadata', kwargs['metadata'] if 'metadata' in kwargs else None)
             return
 
         for name, field in Proof.FIELDS.items():
             field.parse(self, kwargs, name)
+
         for field in ['ver', 'schema', 'network', 'root']:
             val = object.__getattribute__(self, field)
             if val is None and self.format is ProofFormat.root:
@@ -77,6 +85,7 @@ class Proof(ImmutableSerializable):
                                   'parents' if self.parents is None else 'txid',
                                   'both `parents` and `txid` fields must be present for non-pruned proof data')
 
+        object.__setattr__(self, 'type_no', None)
         object.__setattr__(self, 'state', None)
         object.__setattr__(self, 'metadata', None)
 
@@ -85,8 +94,54 @@ class Proof(ImmutableSerializable):
 
     def resolve_schema(self, schema: Schema):
         object.__setattr__(self, 'schema_obj', schema)
-        [field.resolve_schema(schema) for field in self.fields]
+        if not isinstance(schema, Schema):
+            raise ValueError(f'`schema` parameter must be of Schema type; got `{schema}` instead')
+
+        self.resolve_schema_refs(schema.proof_types)
+        if self.proof_type is None:
+            raise SchemaError(f'the provided schema `{schema.name}` does not define proof type `{self.type_name}`'
+                              f'or type with index number {self.type_no}')
+
         [seal.resolve_schema(schema) for seal in self.seals]
+        if self.fields is not None:
+            [field.resolve_schema(schema) for field in self.fields]
+
+        if self.state is not None:
+            self._parse_data_with_schema()
+
+    def resolve_schema_refs(self, proof_types: list):
+        try:
+            proof_type = proof_types[self.type_no]
+            object.__setattr__(self, 'type_name', proof_type.name)
+        except:
+            try:
+                pos = next(num for num, type in enumerate(proof_types) if type.name == self.type_name)
+                proof_type = proof_types[pos]
+                object.__setattr__(self, 'type_no', pos)
+            except StopIteration:
+                proof_type = None
+
+        object.__setattr__(self, 'proof_type', proof_type)
+
+    def _parse_data_with_schema(self):
+        [seal.resolve_schema(self.schema_obj) for seal in self.seals]
+
+        pos = 0
+        for seal in self.seals:
+            pos = seal.parse_state_from_blob(self.state, pos)
+
+        f = BytesIO(self.metadata)
+        fields = []
+        for field_type in self.proof_type.fields:
+            value = field_type.stream_deserealize_value(f)
+            field = MetaField(type_name=field_type.name, value=value, schema_obj=self.schema_obj)
+            fields.append(field)
+
+        object.__setattr__(self, 'fields', fields)
+
+        left = f.read()
+        if len(left) != 0:
+            raise SchemaError(f'Not all metadata bytes were consumed during deserialization, {left} bytes left')
 
     def validate(self):
         # TODO: check format compliance
@@ -118,21 +173,34 @@ class Proof(ImmutableSerializable):
             format = ProofFormat.ordinary
 
         # Deserialize proof body
-        seals = VectorSerializer.stream_deserialize(Seal, f, inner_params={'state': False})
+        # - reading proof type
+        type_no = ser_read(f, 1)
+
+        # - reading `seal_sequence` structure
+        seals = []
+        seal_type_no = 0
+        # -- we iterate over the seals until 0xFF (=FlagVarIntSerializer.Separator.EOF) byte is met
+        while True:
+            try:
+                # -- reading seal with the current type number
+                seal = Seal.stream_deserialize(f, type_no=seal_type_no, schema_obj=schema_obj)
+            except FlagVarIntSerializer.Separator.EOL:
+                # -- met 0xFE separator byte, increasing current type number
+                seal_type_no = seal_type_no + 1
+            except FlagVarIntSerializer.Separator.EOF:
+                # -- end of `seal_sequence` structure
+                break
+            else:
+                # -- otherwise append read seal to the list of seals
+                seals.append(seal)
+
+        # -- if we had zero seals implies proof of state destruction format
         if len(seals) is 0:
             format = ProofFormat.burn
 
-        if schema_obj:
-            _ = VarIntSerializer.stream_deserialize(f)
-            [seal.stream_deserialize_state(f, schema=schema_obj) for seal in seals]
-            _ = VarIntSerializer.stream_deserialize(f)
-            fields = [field_type.stream_deserealize_value(f) for field_type in schema_obj.field_types]
-            state = None
-            metadata = None
-        else:
-            state = BytesSerializer.stream_deserialize(f)
-            metadata = BytesSerializer.stream_deserialize(f)
-            fields = None
+        # - reading unparsed state and metadata bytes
+        state = BytesSerializer.stream_deserialize(f)
+        metadata = BytesSerializer.stream_deserialize(f)
 
         # Deserialize original public key
         pkcode = ser_read(f, 1)
@@ -153,11 +221,19 @@ class Proof(ImmutableSerializable):
         if pruned_flag & 0x02 > 0:
             parents = VectorSerializer.stream_deserialize(Hash256Id, f)
 
-        return Proof(
-            schema_obj=schema_obj,
+        proof = Proof(
+            schema_obj=schema_obj, type_no=type_no,
             ver=ver, format=format, schema=schema, network=network, root=root, pubkey=pubkey,
-            fields=fields, seals=seals, txid=txid, parents=parents, metadata=metadata, state=state
+            fields=None, seals=seals, txid=txid, parents=parents, metadata=metadata, state=state
         )
+
+        # Parsing raw seals and metadata and resolving types against the provided Schema
+        if 'schema_obj' in kwargs:
+            schema_obj = kwargs['schema_obj']
+        if isinstance(schema_obj, Schema):
+            proof.resolve_schema(schema_obj)
+
+        return proof
 
     def stream_serialize(self, f, **kwargs):
         # Serialize proof header
@@ -179,17 +255,27 @@ class Proof(ImmutableSerializable):
             ZeroBytesSerializer.stream_serialize(1, f)
 
         # Serialize proof body
-        if self.seals is None:
-            # - if this is proof of burn, serialize double zero byte to indicate zero seals and no sealed state
-            ZeroBytesSerializer.stream_serialize(2, f)
-        else:
-            # - otherwise, write seals and state information
-            VectorSerializer.stream_serialize(Seal, self.seals, f, inner_params={'state': False})
-            length = reduce((lambda acc, seal: acc + len(seal.serialize({'state': True}))), [0] + self.seals)
-            VarIntSerializer.stream_serialize(length, f)
-            [seal.stream_serialize(f, state=True) for seal in self.seals]
+        # - serializing proof type
+        if self.type_no is None:
+            raise ValueError('proof consensus serialization requires `type_no` to be known')
+        f.write(bytes([self.type_no]))
 
-        # - now write all metafields
+        # - writing `seal_sequence` structure
+        current_type_no = None
+        for seal in self.seals:
+            if seal.type_no is not current_type_no and current_type_no is not None:
+                # -- writing EOL byte to signify the change of the type
+                [f.write(bytes([0xFE])) for n in range(current_type_no, seal.type_no)]
+                current_type_no = seal.type_no
+            seal.stream_serialize(f, state=False)
+        f.write(bytes([0xFF]))
+
+        # - writing raw data for the sealed state
+        length = reduce((lambda acc, seal: acc + len(seal.serialize({'state': True}))), [0] + self.seals)
+        VarIntSerializer.stream_serialize(length, f)
+        [seal.stream_serialize(f, state=True) for seal in self.seals]
+
+        # - writing raw data for all metafields
         length = reduce((lambda acc, field: acc + len(field.serialize())), [0] + self.fields)
         VarIntSerializer.stream_serialize(length, f)
         [field.stream_serialize(f) for field in self.fields]
