@@ -16,7 +16,8 @@ from io import BytesIO
 from enum import unique
 from functools import reduce
 
-from bitcoin.core.serialize import ImmutableSerializable, VectorSerializer, VarIntSerializer, BytesSerializer, ser_read
+from bitcoin.core.serialize import Serializable, ImmutableSerializable, \
+                                   VectorSerializer, VarIntSerializer, BytesSerializer, ser_read
 import bitcoin.segwit_addr as bech32
 
 from openseals.encode import *
@@ -62,7 +63,7 @@ class Proof(ImmutableSerializable):
             object.__setattr__(self, 'fields', None)
             object.__setattr__(self, 'state', None)
             object.__setattr__(self, 'metadata', None)
-            [object.__setattr__(self, attr, value) for attr, value in kwargs]
+            [object.__setattr__(self, attr, value) for attr, value in kwargs.items()]
             object.__setattr__(self, 'schema_obj', schema_obj)
             return
 
@@ -99,12 +100,24 @@ class Proof(ImmutableSerializable):
 
         self.resolve_schema_refs(schema.proof_types)
         if self.proof_type is None:
-            raise SchemaError(f'the provided schema `{schema.name}` does not define proof type `{self.type_name}`'
+            raise SchemaError(f'the provided schema `{schema.name}` does not define proof type `{self.type_name}` '
                               f'or type with index number {self.type_no}')
 
         [seal.resolve_schema(schema) for seal in self.seals]
         if self.fields is not None:
             [field.resolve_schema(schema) for field in self.fields]
+        else:
+            object.__setattr__(self, 'fields', [])
+
+        fields = []
+        for field_ref in self.proof_type.fields:
+            field = field_ref.type
+            try:
+                pos = next(num for num, f in enumerate(self.fields) if f.type_name == field.name)
+                fields.append(self.fields[pos])
+            except:
+                fields.append(MetaField(type_name=field.name, value=None, schema_obj=schema))
+        object.__setattr__(self, 'fields', fields)
 
         if self.state is not None:
             self._parse_data_with_schema()
@@ -132,10 +145,12 @@ class Proof(ImmutableSerializable):
 
         f = BytesIO(self.metadata)
         fields = []
-        for field_type in self.proof_type.fields:
-            value = field_type.stream_deserealize_value(f)
-            field = MetaField(type_name=field_type.name, value=value, schema_obj=self.schema_obj)
+        field_no = 0
+        for field_ref in self.proof_type.fields:
+            value = field_ref.stream_deserialize_value(f)
+            field = MetaField(type_name=field_ref.type.name, value=value, schema_obj=self.schema_obj)
             fields.append(field)
+            field_no += 1
 
         object.__setattr__(self, 'fields', fields)
 
@@ -150,9 +165,18 @@ class Proof(ImmutableSerializable):
     def bech32_id(self) -> str:
         return bech32.encode('pf', 1, self.GetHash())
 
+    def to_dict(self) -> dict:
+        data = {}
+        for field_name in Proof.FIELDS.keys():
+            value = self.__getattribute__(field_name)
+            if issubclass(type(value), Serializable):
+                value = value.to_dict()
+            data[field_name] = value
+        return data
+
     @classmethod
     def stream_deserialize(cls, f, **kwargs):
-        schema_obj = kwargs['schema_obj'] if 'schema_obj' not in kwargs else None
+        schema_obj = kwargs['schema_obj'] if 'schema_obj' in kwargs else None
         if not isinstance(schema_obj, Schema):
             raise ValueError(f'`schema_obj` parameter must be of Schema type; got `{schema_obj}` instead')
 
@@ -174,7 +198,7 @@ class Proof(ImmutableSerializable):
 
         # Deserialize proof body
         # - reading proof type
-        type_no = ser_read(f, 1)
+        type_no = ser_read(f, 1)[0]
 
         # - reading `seal_sequence` structure
         seals = []
@@ -184,12 +208,19 @@ class Proof(ImmutableSerializable):
             try:
                 # -- reading seal with the current type number
                 seal = Seal.stream_deserialize(f, type_no=seal_type_no, schema_obj=schema_obj)
-            except FlagVarIntSerializer.Separator.EOL:
-                # -- met 0xFE separator byte, increasing current type number
-                seal_type_no = seal_type_no + 1
-            except FlagVarIntSerializer.Separator.EOF:
-                # -- end of `seal_sequence` structure
-                break
+            except BaseException as ex:
+                # due to some strange but python 3 is unable to capture SeparatorByteSignal exception by its type,
+                # and `isinstance(ex, SeparatorByteSignal)` returns False as well :(
+                # so we have to capture generic exception and re-raise if it is not SeparatorByteSignal, which
+                # can be determined only by the presence of its method
+                if not callable(getattr(ex, "is_eol", None)):
+                    raise
+                if ex.is_eol():
+                    # -- met 0xFE separator byte, increasing current type number
+                    seal_type_no = seal_type_no + 1
+                elif ex.is_eof():
+                    # -- end of `seal_sequence` structure
+                    break
             else:
                 # -- otherwise append read seal to the list of seals
                 seals.append(seal)
@@ -207,15 +238,16 @@ class Proof(ImmutableSerializable):
         if pkcode is 0x00:
             pubkey = None
         else:
-            buf = [pkcode] + ser_read(f, 32)
+            buf = pkcode + ser_read(f, 32)
             pubkey = PubKey.deserialize(buf)
 
         # Deserialize prunable data
         try:
             pruned_flag = ser_read(f, 1)
-        except EOFError:
+        except:
             pruned_flag = 0x00
 
+        txid, parents = None, None
         if pruned_flag & 0x01 > 0:
             txid = Hash256Id.stream_deserialize(f)
         if pruned_flag & 0x02 > 0:
@@ -263,9 +295,11 @@ class Proof(ImmutableSerializable):
         # - writing `seal_sequence` structure
         current_type_no = None
         for seal in self.seals:
-            if seal.type_no is not current_type_no and current_type_no is not None:
+            if current_type_no is None:
+                current_type_no = seal.type_no
+            elif seal.type_no is not current_type_no:
                 # -- writing EOL byte to signify the change of the type
-                [f.write(bytes([0xFE])) for n in range(current_type_no, seal.type_no)]
+                [f.write(bytes([0x7F])) for n in range(current_type_no, seal.type_no)]
                 current_type_no = seal.type_no
             seal.stream_serialize(f, state=False)
         f.write(bytes([0xFF]))

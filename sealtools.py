@@ -36,8 +36,14 @@ def main():
     pass
 
 
-def guess_format(file: str, kwargs: dict) -> str:
-    format = kwargs['format'] if 'format' in kwargs else None
+def guess_format(file: str, kwargs: dict, input_file=True) -> str:
+    if 'format' in kwargs:
+        format = kwargs['format']
+    elif 'input_format' in kwargs and input_file:
+        format = kwargs['input_format']
+    elif 'output_format' in kwargs and not input_file:
+        format = kwargs['output_format']
+
     if format is None:
         format = "yaml" if re.search("\\.ya?ml$", file.lower()) is not None else "binary"
     elif format.lower() == "yaml" or format.lower() == "binary":
@@ -119,10 +125,14 @@ def proof_validate(file: str, **kwargs) -> Schema:
     if 'schema' in kwargs:
         schema = load_shema(kwargs['schema'])
 
-    logging.info(f'- loading proof data from `{file}`')
-    with open(file) as f:
-        data = yaml.safe_load(f)
-    proof = Proof(schema_obj=schema, **data)
+    logging.info(f'- loading proof data from `{file}` with format `{format}`')
+    if format is 'yaml':
+        with open(file, 'r') as f:
+            data = yaml.safe_load(f)
+            proof = Proof(schema_obj=schema, **data)
+    elif format is 'binary':
+        with open(file, 'rb') as f:
+            proof = Proof.stream_deserialize(f, schema_obj=schema)
 
 
 @main.command()
@@ -135,21 +145,33 @@ def proof_transcode(infile: str, outfile: str, **kwargs):
     """Transcodes proof file into another format"""
     logging.info(f'Transcoding proof from `{infile}` to `{outfile}`:')
 
+    input_format = guess_format(infile, kwargs, input_file=True)
+    output_format = guess_format(outfile, kwargs, input_file=False)
+    if input_format is output_format:
+        sys.exit(f'Input file format and output formats are the same (`{input_format}`), nothing to transcode')
+
     if 'schema' in kwargs:
         schema = load_shema(kwargs['schema'])
 
-    logging.info(f'- loading proof data from `{infile}`')
-    with open(infile) as f:
-        data = yaml.safe_load(f)
-    proof = Proof(schema_obj=schema, **data)
+    logging.info(f'- loading proof data from `{infile}` with format `{input_format}`')
+    if input_format is 'yaml':
+        with open(infile, 'r') as f:
+            data = yaml.safe_load(f)
+            proof = Proof(schema_obj=schema, **data)
+    elif input_format is 'binary':
+        with open(infile, 'rb') as f:
+            proof = Proof.stream_deserialize(f, schema_obj=schema)
 
     logging.info('- serializing data')
     with open(outfile, 'wb') as f:
-        proof.stream_serialize(f)
-        pos = f.tell()
-    logging.info(
-        f'''Proof `{infile}` was transcoded into `{outfile}`; {pos} byes written,
-          proof hash is {proof.bech32_id()}''')
+        if output_format is 'yaml':
+            yaml.dump(proof.to_dict(), f)
+            pos = 'n/a'
+        elif output_format is 'binary':
+            proof.stream_serialize(f)
+            pos = f.tell()
+    logging.info(f'Proof `{infile}` in `{input_format}` format was transcoded into `{outfile}` with `{output_format}` '
+                 f'format\n\t{pos} bytes are written and resulting proof hash is {proof.bech32_id()}')
 
 
 if __name__ == "__main__":

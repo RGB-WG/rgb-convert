@@ -17,10 +17,11 @@ from enum import Enum, auto
 
 from bitcoin.core.serialize import Serializer, ser_read
 
+
 class FlagVarIntSerializer(Serializer):
     """Serialization of flag-prefixed variable length ints"""
 
-    class Separator(Exception, Enum):
+    class Separator(Enum):
         EOL = auto()
         EOF = auto()
 
@@ -47,7 +48,7 @@ class FlagVarIntSerializer(Serializer):
     @classmethod
     def stream_deserialize(cls, f):
         val = ser_read(f, 1)[0]
-        mask = 0x80 & r
+        mask = 0x80 & val
         flag = True if mask is 0x80 else False
         r = val & 0x7f
         if r < 0x7c:
@@ -59,9 +60,9 @@ class FlagVarIntSerializer(Serializer):
         elif r == 0x7e:
             val = struct.unpack(b'<I', ser_read(f, 4))[0]
         elif val == 0x7f:
-            raise FlagVarIntSerializer.Separator.EOL
+            raise SeparatorByteSignal(FlagVarIntSerializer.Separator.EOL)
         elif val == 0xff:
-            raise FlagVarIntSerializer.Separator.EOF
+            raise SeparatorByteSignal(FlagVarIntSerializer.Separator.EOF)
         return val, flag
 
 
@@ -76,7 +77,22 @@ class ZeroBytesSerializer(Serializer):
         raise RuntimeError('ZeroBytesSerializer.stream_deserialize should never be called')
 
 
+class SeparatorByteSignal(BaseException):
+    __slots__ = ['separator']
+
+    def __init__(self, separator: FlagVarIntSerializer.Separator):
+        super().__init__()
+        self.separator = separator
+
+    def is_eol(self) -> bool:
+        return self.separator is FlagVarIntSerializer.Separator.EOL
+
+    def is_eof(self) -> bool:
+        return self.separator is FlagVarIntSerializer.Separator.EOF
+
+
 __all__ = [
     'FlagVarIntSerializer',
-    'ZeroBytesSerializer'
+    'ZeroBytesSerializer',
+    'SeparatorByteSignal'
 ]

@@ -20,7 +20,7 @@ from bitcoin.core.key import CPubKey
 from bitcoin.core.serialize import *
 import bitcoin.segwit_addr as bech32
 
-from encode import FlagVarIntSerializer
+from encode import *
 from openseals.parser.field_parser import FieldEnum
 
 """Generic data types for OpenSeals framework"""
@@ -121,20 +121,20 @@ class HashId(ImmutableSerializable, ABC):
             if match is not None:
                 (hrf, value) = bech32.decode(match.group(1), data)
                 value = bytes(value)
-            elif len(data) is self.bits / 8 * 2:
+            elif len(data) is len(self) * 2:
                 value = lx(data)
             else:
                 raise ValueError(
-                    f'HashId requires {self.bits/8*2}-char hex string or Bech32-encoded string, instead {data} is provided')
+                    f'HashId requires {len(self)*2}-char hex string or Bech32-encoded string, instead {data} is provided')
         elif isinstance(data, bytes):
-            if len(data) is self.bits/8:
+            if len(data) is len(self):
                 value = data
             else:
                 raise ValueError(
-                    f'HashId requires {self.bits/8} bytes for initialization, while only {len(data)} is provided')
+                    f'HashId requires {len(self)} bytes for initialization, while only {len(data)} is provided')
         elif isinstance(data, int):
             if data is 0:
-                value = bytes([0] * int(self.bits/8))
+                value = bytes([0] * len(self))
             else:
                 raise ValueError('HashId may be constructed from int only if its value equals 0')
         else:
@@ -143,6 +143,9 @@ class HashId(ImmutableSerializable, ABC):
 
     def __str__(self):
         return f'{b2lx(self.bytes)}'
+
+    def __len__(self):
+        return int(self.bits/8)
 
     @classmethod
     def from_str(cls, data: str, bits: int):
@@ -156,7 +159,8 @@ class HashId(ImmutableSerializable, ABC):
         if 'bits' not in kwargs:
             raise ValueError(
                 'HashId.stream_deserialize must be provided with number of hash bits to read (`bits` parameter)')
-        return HashId(f.read(kwargs['bits'] / 8), kwargs['bits'])
+        bits = kwargs['bits']
+        return HashId(f.read(int(bits / 8)), kwargs['bits'])
 
 
 class Hash160Id(HashId):
@@ -218,7 +222,7 @@ class OutPoint(ImmutableSerializable):
             txid = bytes(bytearray.fromhex(txid))
         elif isinstance(data, bytes) and vout is not None:
             txid = data
-        elif isinstance(data, int) and vouot is None:
+        elif isinstance(data, int) and vout is None:
             (txid, vout) = (None, data)
         else:
             raise ValueError(f"can't reconstruct reansaction outpoint from given arguments `{data}` and `{vout}`")

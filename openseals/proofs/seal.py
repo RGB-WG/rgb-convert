@@ -14,6 +14,7 @@
 
 from bitcoin.core.serialize import ImmutableSerializable, BytesSerializer
 
+from openseals.encode import SeparatorByteSignal
 from openseals.parser import *
 from openseals.data_types import OutPoint
 from openseals.schema.schema import Schema
@@ -97,7 +98,7 @@ class Seal(ImmutableSerializable):
     def parse_state_from_blob(self, state: bytes, pos: int) -> int:
         if self.seal_type is None:
             raise SchemaError("can't parse state data without knowing `seal_type` of the seal")
-        state, shift = self.seal_type.state_from_blob(state[pos:-1])
+        state, shift = self.seal_type.state_from_blob(state[pos:])
         object.__setattr__(self, 'state', state)
         return pos + shift
 
@@ -105,12 +106,12 @@ class Seal(ImmutableSerializable):
     def stream_deserialize(cls, f, **kwargs):
         if 'schema_obj' not in kwargs:
             raise AttributeError('Seal.stream_deserialize must be provided with `schema_obj` parameter')
-        schema_obj = kwargs['schema_obj'] if 'schema_obj' not in kwargs else None
+        schema_obj = kwargs['schema_obj'] if 'schema_obj' in kwargs else None
         if not isinstance(schema_obj, Schema):
             raise ValueError(f'`schema_obj` parameter must be of Schema type; got `{schema_obj}` instead')
 
-        type_no = kwargs['type_no'] if 'type_no' not in kwargs else None
-        if not type_no:
+        type_no = kwargs['type_no'] if 'type_no' in kwargs else None
+        if type_no is None:
             raise ValueError('seal deserialization requires `type_no` parameter, while no parameter was provided')
 
         outpoint = OutPoint.stream_deserialize(f, short=True)
