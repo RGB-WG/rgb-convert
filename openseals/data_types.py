@@ -15,12 +15,14 @@
 import re
 from abc import ABC
 from enum import unique
+from inflection import *
 from bitcoin.core import lx, b2lx
 from bitcoin.core.key import CPubKey
 from bitcoin.core.serialize import *
 import bitcoin.segwit_addr as bech32
 
-from encode import *
+from openseals.consensus import *
+from openseals.parser import StructureSerializable
 from openseals.parser.field_parser import FieldEnum
 
 """Generic data types for OpenSeals framework"""
@@ -42,7 +44,7 @@ class Network(FieldEnum):
     liquidV1 = 0x10
 
     @classmethod
-    def from_str(cls, val: str):
+    def structure_deserialize(cls, val: str, **kwargs):
         """Takes string value and returns proper `Network` enum instance.
 
         :param val: network name in form `blockchain:network`, where `blockchain` may be either 'bitcoin' or 'liquid',
@@ -63,8 +65,11 @@ class Network(FieldEnum):
 
         return cls.__members__[val]
 
+    def structure_serialize(self, **kwargs) -> str:
+        return underscore(self.name).replace('_', ':')
 
-class SemVer(Serializable):
+
+class SemVer(Serializable, StructureSerializable):
     """Semantic versioning (see semver.org) data structure that can be serializaed and deserialized with consensus
     serialized or read from YAML file
     """
@@ -91,8 +96,14 @@ class SemVer(Serializable):
         return f'{self.major}.{self.minor}.{self.patch}'
 
     @classmethod
-    def from_str(cls, ver: str):
+    def structure_deserialize(cls, ver: str, **kwargs):
         return SemVer(ver)
+
+    def structure_serialize(self, **kwargs):
+        text = f'{self.major}.{self.minor}'
+        if self.patch is not None:
+            text += f'{self.patch}'
+        return text
 
     @classmethod
     def stream_deserialize(cls, f, **kwargs):
@@ -107,7 +118,7 @@ class SemVer(Serializable):
         f.write(bytes([self.patch]))
 
 
-class HashId(ImmutableSerializable, ABC):
+class HashId(ImmutableSerializable, ABC, StructureSerializable):
     __slots__ = ['bytes', 'bits']
 
     def __init__(self, data, bits: int):
@@ -148,11 +159,17 @@ class HashId(ImmutableSerializable, ABC):
         return int(self.bits/8)
 
     @classmethod
-    def from_str(cls, data: str, bits: int):
+    def structure_deserialize(cls, data: str, **kwargs):
+        if 'bits' not in kwargs:
+            raise AttributeError('HashId.structure_deserialize must be provided with number of bits to deserialize')
+        bits = kwargs['bits']
         return HashId(data, bits)
 
-    def stream_serialize(self, f, **kwargs):
-        f.write(self.bytes)
+    def structure_serialize(self, **kwargs):
+        if 'bech32' in kwargs and kwargs['bech32'] is True:
+            return bech32.encode('sm', 1, self.bytes)
+        else:
+            return self.__str__()
 
     @classmethod
     def stream_deserialize(cls, f, **kwargs):
@@ -162,6 +179,9 @@ class HashId(ImmutableSerializable, ABC):
         bits = kwargs['bits']
         return HashId(f.read(int(bits / 8)), kwargs['bits'])
 
+    def stream_serialize(self, f, **kwargs):
+        f.write(self.bytes)
+
 
 class Hash160Id(HashId):
     BITS = 160
@@ -170,8 +190,8 @@ class Hash160Id(HashId):
         HashId.__init__(self, data, Hash160Id.BITS)
 
     @classmethod
-    def from_str(cls, data: str, **kwargs):
-        super().from_str(data, Hash160Id.BITS)
+    def structure_deserialize(cls, data: str, **kwargs):
+        super().structure_deserialize(data, bits=Hash160Id.BITS)
 
     @classmethod
     def stream_deserialize(cls, f, **kwargs):
@@ -185,15 +205,15 @@ class Hash256Id(HashId):
         HashId.__init__(self, data, Hash256Id.BITS)
 
     @classmethod
-    def from_str(cls, data: str, **kwargs):
-        super().from_str(data, Hash256Id.BITS)
+    def structure_deserialize(cls, data: str, **kwargs):
+        super().structure_deserialize(data, Hash256Id.BITS)
 
     @classmethod
     def stream_deserialize(cls, f, **kwargs):
         return super().stream_deserialize(f, bits=Hash256Id.BITS, **kwargs)
 
 
-class PubKey(ImmutableSerializable):
+class PubKey(ImmutableSerializable, StructureSerializable):
     __slots__ = ['cpubkey']
 
     def __init__(self, data):
@@ -205,6 +225,9 @@ class PubKey(ImmutableSerializable):
             raise ValueError('PubKey can be constructed only from either hex string, bytearray or byte data')
         object.__setattr__(self, 'cpubkey', CPubKey(data))
 
+    def structure_serialize(self, **kwargs) -> str:
+        return self.cpubkey.hex()
+
     @classmethod
     def stream_deserialize(cls, f, **kwargs):
         return cls(ser_read(f, 33))
@@ -213,7 +236,7 @@ class PubKey(ImmutableSerializable):
         f.write(self.cpubkey)
 
 
-class OutPoint(ImmutableSerializable):
+class OutPoint(ImmutableSerializable, StructureSerializable):
     __slots__ = ['txid', 'vout']
 
     def __init__(self, data, vout=None):
@@ -235,6 +258,9 @@ class OutPoint(ImmutableSerializable):
             object.__setattr__(self, 'vout', int(vout))
         except _:
             raise ValueError('OutPoint can be constructed only from string `txid_hex:vout` or `int`')
+
+    def structure_serialize(self, **kwargs):
+        return f'{self.txid.hex()}:{self.vout}'
 
     @classmethod
     def stream_deserialize(cls, f, **kwargs):

@@ -14,7 +14,7 @@
 
 from bitcoin.core.serialize import ImmutableSerializable, BytesSerializer
 
-from openseals.encode import SeparatorByteSignal
+from openseals.consensus import SeparatorByteSignal
 from openseals.parser import *
 from openseals.data_types import OutPoint
 from openseals.schema.schema import Schema
@@ -101,6 +101,17 @@ class Seal(ImmutableSerializable):
         state, shift = self.seal_type.state_from_blob(state[pos:])
         object.__setattr__(self, 'state', state)
         return pos + shift
+
+    def structure_serialize(self, **kwargs) -> dict:
+        if self.seal_type is None:
+            raise SchemaError("can't serialize state data without knowing `seal_type` of the seal")
+        data = self.seal_type.dict_from_state(self.state)
+        for field_name in Seal.FIELDS.keys():
+            value = self.__getattribute__(field_name)
+            if issubclass(type(value), StructureSerializable) or issubclass(type(value), FieldEnum):
+                value = value.structure_serialize(**kwargs)
+            data[field_name] = value
+        return data
 
     @classmethod
     def stream_deserialize(cls, f, **kwargs):

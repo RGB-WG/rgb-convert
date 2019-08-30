@@ -20,7 +20,7 @@ from bitcoin.core.serialize import Serializable, ImmutableSerializable, \
                                    VectorSerializer, VarIntSerializer, BytesSerializer, ser_read
 import bitcoin.segwit_addr as bech32
 
-from openseals.encode import *
+from openseals.consensus import *
 from openseals.data_types import Hash256Id, PubKey, Network, OutPoint
 from openseals.parser import *
 from openseals.proofs.meta_field import MetaField
@@ -165,13 +165,26 @@ class Proof(ImmutableSerializable):
     def bech32_id(self) -> str:
         return bech32.encode('pf', 1, self.GetHash())
 
-    def to_dict(self) -> dict:
+    def structure_serialize(self, **kwargs) -> dict:
         data = {}
         for field_name in Proof.FIELDS.keys():
             value = self.__getattribute__(field_name)
-            if issubclass(type(value), Serializable):
-                value = value.to_dict()
+            if isinstance(value, list):
+                value = [item.structure_serialize(**kwargs) for item in value]
+            elif issubclass(type(value), StructureSerializable) or issubclass(type(value), FieldEnum):
+                value = value.structure_serialize(**kwargs)
             data[field_name] = value
+
+        if 'schema' in data:
+            data['schema'] = self.schema.structure_serialize(bech32=True, **kwargs)
+
+        fields = {}
+        for field in data['fields']:
+            for name, value in field.items():
+                if value is not None:
+                    fields[name] = value
+        data['fields'] = fields
+
         return data
 
     @classmethod
@@ -191,6 +204,7 @@ class Proof(ImmutableSerializable):
                 format = ProofFormat.upgrade
             # - root-specific fields
             else:
+                network = Network(network)
                 format = ProofFormat.root
                 root = OutPoint.stream_deserialize(f, short=False)
         else:

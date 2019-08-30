@@ -41,6 +41,12 @@ class SealType(ImmutableSerializable):
         else:
             return None
 
+    def dict_from_state(self, state) -> dict:
+        if self.type is SealType.Type.balance:
+            return {'amount': state}
+        else:
+            return {}
+
     def state_from_blob(self, blob: bytes) -> (any, int):
         if self.type is SealType.Type.balance:
             if blob[0] == 0xfd:

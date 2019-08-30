@@ -15,9 +15,21 @@
 from .errors import FieldParseError
 from .field_parser import FieldEnum, FieldParser
 
+
+class StructureSerializable:
+    """Allows to serialize data to YAML, JSON and other structured formats"""
+
+    @classmethod
+    def structure_deserialize(cls, data: dict, **kwargs):
+        return cls.__init__(**data)
+
+    def structure_serialize(self, **kwargs):
+        NotImplementedError('Child classes must implement `structure_serialize` method')
+
+
 __all__ = [
     'FieldEnum',
     'FieldParser',
-    'FieldParseError'
+    'FieldParseError',
+    'StructureSerializable'
 ]
-

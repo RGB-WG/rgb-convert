@@ -163,11 +163,12 @@ def proof_transcode(infile: str, outfile: str, **kwargs):
             proof = Proof.stream_deserialize(f, schema_obj=schema)
 
     logging.info('- serializing data')
-    with open(outfile, 'wb') as f:
-        if output_format is 'yaml':
-            yaml.dump(proof.to_dict(), f)
+    if output_format is 'yaml':
+        with open(outfile, 'w') as f:
+            yaml.dump(proof.structure_serialize(), f, default_flow_style=False)
             pos = 'n/a'
-        elif output_format is 'binary':
+    elif output_format is 'binary':
+        with open(outfile, 'wb') as f:
             proof.stream_serialize(f)
             pos = f.tell()
     logging.info(f'Proof `{infile}` in `{input_format}` format was transcoded into `{outfile}` with `{output_format}` '

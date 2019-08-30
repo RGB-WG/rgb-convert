@@ -1,0 +1,23 @@
+fields:
+  dust_limit: 1
+  ticker: PLS
+  title: Private Company Ltd Shares
+format: root
+network: bitcoin:testnet
+parents: null
+pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1
+root: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
+schema: sm1p9au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxskfnvz5
+seals:
+- amount: 1000000
+  outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:0
+  type_name: assets
+- outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:1
+  type_name: inflation
+- outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:3
+  type_name: upgrade
+- outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:2
+  type_name: pruning
+txid: null
+type_name: primary_issue
+ver: 1

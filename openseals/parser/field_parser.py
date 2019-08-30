@@ -14,13 +14,16 @@
 
 from enum import IntEnum
 
-from .errors import *
+from openseals.parser.errors import *
 
 
 class FieldEnum(IntEnum):
     @classmethod
-    def from_str(cls, val: str):
+    def structure_deserialize(cls, val: str, **kwargs):
         return cls.__members__[val]
+
+    def structure_serialize(self, **kwargs) -> str:
+        return self.name
 
 
 class FieldParser:
@@ -63,7 +66,7 @@ class FieldParser:
                 raise FieldParseError(FieldParseError.Kind.wrongFieldType, field_name)
         elif issubclass(self.field_type, FieldEnum) and isinstance(val, str):
             try:
-                parsed = self.field_type.from_str(val)
+                parsed = self.field_type.structure_deserialize(val)
             except KeyError as err:
                 raise FieldParseError(FieldParseError.Kind.wrongEnumValue, field_name,
                                       f'`{val}` is not a member of enum `{self.field_type}`')

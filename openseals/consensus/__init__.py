@@ -14,8 +14,12 @@
 
 import struct
 from enum import Enum, auto
+from typing import NewType
 
-from bitcoin.core.serialize import Serializer, ser_read
+from bitcoin.core.serialize import Serializer, ImmutableSerializable, ser_read
+
+
+ConsensusSerializable = NewType('ConsensusSerializable', ImmutableSerializable)
 
 
 class FlagVarIntSerializer(Serializer):

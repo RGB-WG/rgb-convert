@@ -19,7 +19,7 @@ from openseals.schema.schema import Schema
 from openseals.schema.errors import SchemaError
 
 
-class MetaField(ImmutableSerializable):
+class MetaField(ImmutableSerializable, StructureSerializable):
     FIELDS = {
         'type_name': FieldParser(str, required=True),
     }
@@ -59,6 +59,9 @@ class MetaField(ImmutableSerializable):
         value, shift = self.field_type.value_from_blob(metadata[pos:-1])
         object.__setattr__(self, 'value', value)
         return pos + shift
+
+    def structure_serialize(self, **kwargs) -> dict:
+        return {self.type_name: self.value}
 
     @classmethod
     def stream_deserialize(cls, f, **kwargs):

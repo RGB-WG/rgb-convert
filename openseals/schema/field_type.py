@@ -17,7 +17,7 @@ from enum import unique
 from bitcoin.core.serialize import ser_read, ImmutableSerializable, VarStringSerializer, VarIntSerializer, \
     BytesSerializer
 
-from encode import *
+from consensus import *
 from openseals.data_types import Hash256Id, Hash160Id, PubKey, HashId
 from openseals.parser import *
 
@@ -93,7 +93,7 @@ class FieldType(ImmutableSerializable):
             FieldType.Type.i64: lambda: struct.unpack(b'<q', ser_read(f, 8))[0],
             FieldType.Type.vi: lambda: VarIntSerializer.stream_deserialize(f),
             FieldType.Type.fvi: lambda: FlagVarIntSerializer.stream_deserialize(f),
-            FieldType.Type.str: lambda: VarStringSerializer.stream_deserialize(f),
+            FieldType.Type.str: lambda: VarStringSerializer.stream_deserialize(f).decode('utf-8'),
             FieldType.Type.bytes: lambda: BytesSerializer.stream_deserialize(f),
             FieldType.Type.sha256: lambda: Hash256Id.stream_deserialize(f),
             FieldType.Type.sha256d: lambda: Hash256Id.stream_deserialize(f),
