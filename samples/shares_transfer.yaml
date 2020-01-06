@@ -1,5 +1,6 @@
 # This proof has bech32-encoded id `osp179sqeypkyjkm2kld48xj00xvk5jxwqcllh7mwc36l6ce5p9vwfmqxxf9rq`
-type: secondary_issue
+type_name: asset_transfer
+unseals:
 seals:
   - type_name: assets
     outpoint: 0
@@ -7,4 +8,3 @@ seals:
   - type_name: assets
     outpoint: 1
     amount: 900000
-pubkey: ____

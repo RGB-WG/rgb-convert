@@ -17,7 +17,7 @@ from enum import unique
 from bitcoin.core.serialize import ser_read, ImmutableSerializable, VarStringSerializer, VarIntSerializer, \
     BytesSerializer
 
-from consensus import *
+from openseals.consensus import *
 from openseals.data_types import Hash256Id, Hash160Id, PubKey, HashId
 from openseals.parser import *
 
