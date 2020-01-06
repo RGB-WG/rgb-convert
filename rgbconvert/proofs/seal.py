@@ -14,11 +14,11 @@
 
 from bitcoin.core.serialize import ImmutableSerializable, BytesSerializer
 
-from openseals.consensus import SeparatorByteSignal
-from openseals.parser import *
-from openseals.data_types import OutPoint
-from openseals.schema.schema import Schema
-from openseals.schema.errors import SchemaError
+from ..consensus import SeparatorByteSignal
+from ..parser import *
+from ..data_types import OutPoint
+from ..schema.schema import Schema
+from ..schema.errors import SchemaError
 
 
 class Seal(ImmutableSerializable):

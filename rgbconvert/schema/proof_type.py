@@ -16,7 +16,7 @@ from bitcoin.core.serialize import ImmutableSerializable, VarStringSerializer, V
 
 from .type_ref import TypeRef
 from .errors import *
-from openseals.parser import *
+from ..parser import *
 
 
 class ProofType(ImmutableSerializable):

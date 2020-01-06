@@ -16,8 +16,8 @@ from bitcoin.core.serialize import ImmutableSerializable, VarStringSerializer, V
 import bitcoin.segwit_addr as bech32
 
 from . import *
-from openseals.data_types import SemVer, Hash256Id
-from openseals.parser import *
+from ..data_types import SemVer, Hash256Id
+from ..parser import *
 
 
 class Schema(ImmutableSerializable):

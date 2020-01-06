@@ -20,12 +20,12 @@ from bitcoin.core.serialize import Serializable, ImmutableSerializable, \
                                    VectorSerializer, VarIntSerializer, BytesSerializer, ser_read
 import bitcoin.segwit_addr as bech32
 
-from openseals.consensus import *
-from openseals.data_types import Hash256Id, PubKey, Network, OutPoint
-from openseals.parser import *
-from openseals.proofs.meta_field import MetaField
-from openseals.proofs.seal import Seal
-from openseals.schema.schema import Schema, SchemaError
+from ..consensus import *
+from ..data_types import Hash256Id, PubKey, Network, OutPoint
+from ..parser import *
+from ..proofs.meta_field import MetaField
+from ..proofs.seal import Seal
+from ..schema.schema import Schema, SchemaError
 
 
 @unique

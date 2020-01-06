@@ -15,7 +15,7 @@
 from enum import unique
 from bitcoin.core.serialize import ImmutableSerializable, VarStringSerializer, VarIntSerializer
 
-from openseals.parser import *
+from ..parser import *
 
 
 class SealType(ImmutableSerializable):

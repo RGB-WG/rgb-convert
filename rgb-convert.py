@@ -22,8 +22,8 @@ import logging
 import yaml
 import click
 
-from openseals.schema.schema import *
-from openseals.proofs.proof import *
+from rgbconvert.schema.schema import *
+from rgbconvert.proofs.proof import *
 
 __author__ = "Dr Maxim Orlovsky <orlovsky@pandoracore.com>"
 

@@ -21,9 +21,9 @@ from bitcoin.core.key import CPubKey
 from bitcoin.core.serialize import *
 import bitcoin.segwit_addr as bech32
 
-from openseals.consensus import *
-from openseals.parser import StructureSerializable
-from openseals.parser.field_parser import FieldEnum
+from rgbconvert.consensus import *
+from rgbconvert.parser import StructureSerializable
+from rgbconvert.parser.field_parser import FieldEnum
 
 """Generic data types for OpenSeals framework"""
 

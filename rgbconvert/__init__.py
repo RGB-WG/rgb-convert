@@ -12,9 +12,9 @@
 # along with this software.
 # If not, see <https://opensource.org/licenses/MIT>.
 
-from data_types import SemVer, Hash256Id
-from parser import *
-from proofs import *
-from schema import *
+from .data_types import SemVer, Hash256Id
+from .parser import *
+from .proofs import *
+from .schema import *
 
 __version__ = "0.1.0"

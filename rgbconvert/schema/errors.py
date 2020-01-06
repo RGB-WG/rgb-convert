@@ -12,6 +12,7 @@
 # along with this software.
 # If not, see <https://opensource.org/licenses/MIT>.
 
+
 class SchemaError(Exception):
     __slots__ = ['description']
 

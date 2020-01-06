@@ -15,9 +15,9 @@
 from enum import unique
 from bitcoin.core.serialize import ImmutableSerializable, VarIntSerializer, VectorSerializer, ser_read
 
-from openseals.data_types import PubKey
-from openseals.parser import *
-from openseals.schema import FieldType, SchemaError
+from ..data_types import PubKey
+from ..parser import *
+from ..schema import FieldType, SchemaError
 
 
 class TypeRef(ImmutableSerializable):

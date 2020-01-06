@@ -14,7 +14,7 @@
 
 from enum import IntEnum
 
-from openseals.parser.errors import *
+from ..parser.errors import *
 
 
 class FieldEnum(IntEnum):

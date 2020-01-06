@@ -1,3 +1,5 @@
-python-bitcoinlib>=0.11.0;<0.12.0
+# python-bitcoinlib>=0.11.0,<0.12.0
+git+https://github.com/petertodd/python-bitcoinlib.git@ebc85bf3f75508aba92d3a94cd024670bf25be76
 click
 inflection
+pyyaml

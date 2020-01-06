@@ -14,9 +14,9 @@
 
 from bitcoin.core.serialize import ImmutableSerializable
 
-from openseals.parser import *
-from openseals.schema.schema import Schema
-from openseals.schema.errors import SchemaError
+from ..parser import *
+from ..schema.schema import Schema
+from ..schema.errors import SchemaError
 
 
 class MetaField(ImmutableSerializable, StructureSerializable):
